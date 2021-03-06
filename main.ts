@@ -1,3 +1,7 @@
 import {ChromeDB} from "./chromedb"
 
-let client: ChromeDB = new ChromeDB("myDB");
+const main = async () => {
+    let client: ChromeDB = await ChromeDB.init("myDB");
+}
+
+main();

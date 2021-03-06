@@ -1,0 +1,17 @@
+  {
+    "name": "ChromeDB Test",
+    "version": "1.0",
+    "description": "A database API for chrome storage",
+    "permissions": [
+        "storage"
+    ],
+    "background":{
+        "scripts": ["main.js"],
+        "persistent": false
+    },
+    "browser_action": {
+        "default_title": "ChromeDB",     
+        "default_popup": "test.html"
+    },
+    "manifest_version": 2
+}

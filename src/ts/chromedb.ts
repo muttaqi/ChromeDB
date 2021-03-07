@@ -1,5 +1,5 @@
 class Config {
-    documents: Map<string, Array<string>>;
+    documents: Map<string, Array<string>> = new Map<string, Array<string>>();
 }
 
 //TODO: WASM all
@@ -119,15 +119,20 @@ class Get {
                 chrome.storage.sync.get(this.document, (res) => {
                     if (res[this.document] != undefined) {
                         var out: Array<any> = [];
-                        for (var obj of res[this.document]) {
-                            if (conditionOrField(obj)) {
-                                out.push(obj);
+                        for (var object of res[this.document]) {
+                            for (var key in object) {
+                                object[key] = JSON.parse(object[key]);
+                            }
+                            if (conditionOrField(object)) {
+                                out.push(object);
                             }
                         }
                         resolve(out);
                     }
-    
-                    reject(`Error finding document ${this.document}`);
+
+                    else {
+                        reject(`Error finding document ${this.document}`);
+                    }
                 });
             });
         }
@@ -137,10 +142,19 @@ class Get {
         return new Promise<Array<any>>((resolve, reject) => {
             chrome.storage.sync.get(this.document, (res) => {
                 if (res[this.document] != undefined) {
+                    for (var i = 0; i < res[this.document].length; i ++) {
+                        var object = res[this.document][i];
+                        for (var key in object) {
+                            object[key] = JSON.parse(object[key]);
+                        }
+                        res[this.document][i] = object;
+                    }
                     resolve(res[this.document]);
                 }
 
-                reject(`Error finding document ${this.document}`);
+                else {
+                    reject(`Error finding document ${this.document}`);
+                }
             });
         });
     }
@@ -167,19 +181,26 @@ class Set {
                 chrome.storage.sync.get(this.document, (res) => {
                     if (res[this.document] != undefined) {
                         for (var i = 0; i < res[this.document].length; i ++) {
-                            if (conditionOrField(res[this.document][i])) {
-                                this.values.forEach((val: string, key: string) => {
-                                    res[this.document][i][key] = val;
+                            var object = res[this.document][i];
+                            for (var key in object) {
+                                object[key] = JSON.parse(object[key]);
+                            }
+
+                            if (conditionOrField(object)) {
+                                this.values.forEach((val: any, key: string) => {
+                                    res[this.document][i][key] = JSON.stringify(val);
                                 });
                             }
                         }
 
-                        chrome.storage.sync.set({[this.document]: res[this.document]}, () => {
+                        chrome.storage.sync.set({[this.document]: res}, () => {
                             resolve(true);
                         });
                     }
-    
-                    reject(`Error finding document ${this.document}`);
+
+                    else {
+                        reject(`Error finding document ${this.document}`);
+                    }
                 });
             });
         }
@@ -191,17 +212,19 @@ class Set {
             chrome.storage.sync.get(this.document, (res) => {
                 if (res[this.document] != undefined) {
                     for (var i = 0; i < res[this.document].length; i ++) {
-                        this.values.forEach((val: string, key: string) => {
-                            res[this.document][i][key] = val;
+                        this.values.forEach((val: any, key: string) => {
+                            res[this.document][i][key] = JSON.stringify(val);
                         });
                     }
 
-                    chrome.storage.sync.set({[this.document]: res[this.document]}, () => {
+                    chrome.storage.sync.set({[this.document]: res}, () => {
                         resolve(true);
                     });
                 }
-
-                reject(`Error finding document ${this.document}`);
+                
+                else {
+                    reject(`Error finding document ${this.document}`);
+                }
             });
         });
     }
@@ -225,6 +248,10 @@ class Document {
     add(object: any): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.get(this.name, (res) => {
+                for (var key in object) {
+                    object[key] = JSON.stringify(object[key]);
+                }
+
                 if (res[this.name] != undefined) {
                     res[this.name].push(object);
                     chrome.storage.sync.set({[this.name]: res[this.name]}, () => {
@@ -242,8 +269,14 @@ class Document {
     addAll(objects: Array<any>): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.get(this.name, (res) => {
+                for (var object of objects) {
+                    for (var key in object) {
+                        object[key] = JSON.stringify(object[key]);
+                    }
+                }
+
                 if (res[this.name] != undefined) {
-                    res.addAll(objects);
+                    res[this.name].addAll(objects);
                     chrome.storage.sync.set({[this.name]: res}, () => {
                         resolve(true);
                     });
@@ -298,7 +331,6 @@ export class ChromeDB {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.set({[name]: []}, () => {
                 this.config.documents[this.database].push(name);
-                console.log(`Added document: ${this.config.documents[this.database]}`)
                 resolve(true);
             });
         });

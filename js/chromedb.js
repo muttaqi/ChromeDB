@@ -8,40 +8,32 @@ class FieldCondition {
         this.field = field;
         this.action = action;
     }
-    static promiseFromPromiseOrFieldCondition(value) {
-        if (value instanceof FieldCondition) {
-            throw Error(`Promise should never be created from a field condition!`);
-        }
-        else {
-            return value;
-        }
-    }
     is(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field] == value; }));
+        return this.action.where((obj) => { return obj[this.field] == value; });
     }
     isnt(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field] != value; }));
+        return this.action.where((obj) => { return obj[this.field] != value; });
     }
     greaterThan(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field] > value; }));
+        return this.action.where((obj) => { return obj[this.field] > value; });
     }
     lesserThan(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field] < value; }));
+        return this.action.where((obj) => { return obj[this.field] < value; });
     }
     greaterThanOrEqualTo(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field] >= value; }));
+        return this.action.where((obj) => { return obj[this.field] >= value; });
     }
     lesserThanOrEqualTo(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field] <= value; }));
+        return this.action.where((obj) => { return obj[this.field] <= value; });
     }
     isTrue() {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field]; }));
+        return this.action.where((obj) => { return obj[this.field]; });
     }
     isFalse() {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field]; }));
+        return this.action.where((obj) => { return obj[this.field]; });
     }
     has(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field].includes(value); }));
+        return this.action.where((obj) => { return obj[this.field].includes(value); });
     }
     length() {
         return new LengthFieldCondition(this);
@@ -51,31 +43,23 @@ class LengthFieldCondition extends FieldCondition {
     constructor(fc) {
         super(fc.field, fc.action);
     }
-    static promiseFromPromiseOrFieldCondition(value) {
-        if (value instanceof FieldCondition) {
-            throw Error(`Promise should never be created from a field condition!`);
-        }
-        else {
-            return value;
-        }
-    }
     is(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field].length == value; }));
+        return this.action.where((obj) => { return obj[this.field].length == value; });
     }
     isnt(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field].length != value; }));
+        return this.action.where((obj) => { return obj[this.field].length != value; });
     }
     greaterThan(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field].length > value; }));
+        return this.action.where((obj) => { return obj[this.field].length > value; });
     }
     lesserThan(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field].length < value; }));
+        return this.action.where((obj) => { return obj[this.field].length < value; });
     }
     greaterThanOrEqualTo(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field].length >= value; }));
+        return this.action.where((obj) => { return obj[this.field].length >= value; });
     }
     lesserThanOrEqualTo(value) {
-        return FieldCondition.promiseFromPromiseOrFieldCondition(this.action.where((obj) => { return obj[this.field].length <= value; }));
+        return this.action.where((obj) => { return obj[this.field].length <= value; });
     }
     isTrue() {
         throw Error("You can't evaluate length as a boolean");
@@ -94,58 +78,61 @@ class Get {
     constructor(document) { this.document = document; }
     where(conditionOrField) {
         if (typeof conditionOrField === "string") {
-            throw new Error("Method not implemented.");
+            return new FieldCondition(conditionOrField, this);
         }
         else {
             return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(document, (res) => {
-                    if (res.document != undefined) {
+                chrome.storage.sync.get(this.document, (res) => {
+                    if (res[this.document] != undefined) {
                         var out = [];
-                        for (var obj in res.document) {
+                        for (var obj of res[this.document]) {
                             if (conditionOrField(obj)) {
                                 out.push(obj);
                             }
                         }
                         resolve(out);
                     }
-                    reject(`Error finding document ${document}`);
+                    reject(`Error finding document ${this.document}`);
                 });
             });
         }
     }
     all() {
         return new Promise((resolve, reject) => {
-            chrome.storage.sync.get(document, (res) => {
-                if (res.document != undefined) {
-                    resolve(res.document);
+            chrome.storage.sync.get(this.document, (res) => {
+                if (res[this.document] != undefined) {
+                    resolve(res[this.document]);
                 }
-                reject(`Error finding document ${document}`);
+                reject(`Error finding document ${this.document}`);
             });
         });
     }
 }
 class Set {
-    constructor(document) { this.document = document; }
+    constructor(document, values) {
+        this.document = document;
+        this.values = values;
+    }
     where(conditionOrField) {
         if (typeof conditionOrField === "string") {
-            throw new Error("Method not implemented.");
+            return new FieldCondition(conditionOrField, this);
         }
         else {
             return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(document, (res) => {
-                    if (res.document != undefined) {
-                        for (var i = 0; i < res.document.length; i++) {
-                            if (conditionOrField(res.document[i])) {
+                chrome.storage.sync.get(this.document, (res) => {
+                    if (res[this.document] != undefined) {
+                        for (var i = 0; i < res[this.document].length; i++) {
+                            if (conditionOrField(res[this.document][i])) {
                                 this.values.forEach((val, key) => {
-                                    res.document[i][key] = val;
+                                    res[this.document][i][key] = val;
                                 });
                             }
                         }
-                        chrome.storage.sync.set({ [this.document]: res.document }, () => {
+                        chrome.storage.sync.set({ [this.document]: res[this.document] }, () => {
                             resolve(true);
                         });
                     }
-                    reject("Error finding document");
+                    reject(`Error finding document ${this.document}`);
                 });
             });
         }
@@ -153,18 +140,18 @@ class Set {
     //TODO: WASM
     all() {
         return new Promise((resolve, reject) => {
-            chrome.storage.sync.get(document, (res) => {
-                if (res.document != undefined) {
-                    for (var i = 0; i < res.document.length; i++) {
+            chrome.storage.sync.get(this.document, (res) => {
+                if (res[this.document] != undefined) {
+                    for (var i = 0; i < res[this.document].length; i++) {
                         this.values.forEach((val, key) => {
-                            res.document[i][key] = val;
+                            res[this.document][i][key] = val;
                         });
                     }
-                    chrome.storage.sync.set({ [this.document]: res.document }, () => {
+                    chrome.storage.sync.set({ [this.document]: res[this.document] }, () => {
                         resolve(true);
                     });
                 }
-                reject(`Error finding document ${document}`);
+                reject(`Error finding document ${this.document}`);
             });
         });
     }
@@ -176,16 +163,36 @@ class Document {
     get() {
         return new Get(this.name);
     }
-    add(objects) {
+    set(values) {
+        return new Set(this.name, values);
+    }
+    add(object) {
         return new Promise((resolve, reject) => {
-            chrome.storage.sync.get(document, (res) => {
-                if (res.document != undefined) {
-                    res.addAll(objects);
-                    chrome.storage.sync.set({ [this.name]: objects }, () => {
+            chrome.storage.sync.get(this.name, (res) => {
+                if (res[this.name] != undefined) {
+                    res[this.name].push(object);
+                    chrome.storage.sync.set({ [this.name]: res[this.name] }, () => {
                         resolve(true);
                     });
                 }
-                reject(`Error finding document ${document}`);
+                else {
+                    reject(`Error finding document ${this.name}`);
+                }
+            });
+        });
+    }
+    addAll(objects) {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.get(this.name, (res) => {
+                if (res[this.name] != undefined) {
+                    res.addAll(objects);
+                    chrome.storage.sync.set({ [this.name]: res }, () => {
+                        resolve(true);
+                    });
+                }
+                else {
+                    reject(`Error finding document ${this.name}`);
+                }
             });
         });
     }
@@ -211,15 +218,21 @@ class ChromeDB {
         });
     }
     doc(name) {
-        if (name in this.config.documents[this.database]) {
+        if (this.config.documents[this.database].includes(name)) {
             return new Document(name);
         }
         throw Error(`Document ${name} doesn't belong to database ${this.database}`);
     }
     makeDoc(name) {
+        if (this.config.documents[this.database].includes(name)) {
+            return new Promise((resolve, reject) => {
+                resolve(false);
+            });
+        }
         return new Promise((resolve, reject) => {
             chrome.storage.sync.set({ [name]: [] }, () => {
                 this.config.documents[this.database].push(name);
+                console.log(`Added document: ${this.config.documents[this.database]}`);
                 resolve(true);
             });
         });

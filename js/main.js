@@ -11,6 +11,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chromedb_1 = require("./chromedb");
 const main = () => __awaiter(this, void 0, void 0, function* () {
     let client = yield chromedb_1.ChromeDB.init("myDB");
+    yield client.makeDoc("MyDoc");
+    yield client.doc("MyDoc").add({ "id": 0, "content": "hello" });
+    var obj = yield client.doc("MyDoc").get().where("id").is(1);
+    console.log(obj);
 });
 main();
 //# sourceMappingURL=main.js.map

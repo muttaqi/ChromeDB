@@ -1,3 +1,16 @@
+const loader = require("../../node_modules/assemblyscript/lib/loader/index");
+
+var wasmIs;
+var __getString;
+var __newString;
+
+loader.instantiate(fetch("query.wasm"), {})
+.then((module) => {
+    wasmIs = module.exports.is;
+    __getString = module.exports.__getString;
+    __newString = module.exports.__newString;
+});
+
 class Config {
     documents: Map<string, Array<string>> = new Map<string, Array<string>>();
 }
@@ -13,7 +26,7 @@ class FieldCondition {
     }
 
     is(value: any): Promise<Array<any>> | Promise<boolean> {
-        return this.action.where((obj) => {return obj[this.field] == value;});
+        return this.action.where((obj) => {return obj[this.field] === value;});
     }
 
     isnt(value: any): Promise<Array<any>> | Promise<boolean> {
@@ -62,7 +75,7 @@ class LengthFieldCondition extends FieldCondition {
     }
 
     is(value: any): Promise<Array<any>> | Promise<boolean> {
-        return this.action.where((obj) => {return obj[this.field].length == value;});
+        return this.action.where((obj) => {return obj[this.field].length === value;});
     }
 
     isnt(value: any): Promise<Array<any>> | Promise<boolean> {

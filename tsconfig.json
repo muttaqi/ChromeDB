@@ -5,10 +5,25 @@
       "target": "es6",
       "moduleResolution": "node",
       "sourceMap": true,
-      "outDir": "js"
+      "rootDir": "src",
+      "outDir": "js",
+      "rootDirs": [
+        "src"
+      ],
+      "typeRoots": [
+        "./types",
+        "node_modules/@types"
+      ]
     },
-    "lib": ["es2015"],
+    "lib": ["es2015", "dom"],
     "types": [
-      "chrome"
+      "chrome",
+      "node"
+    ],
+    "exclude": [
+      "src/wasm/*",
+      "js/*",
+      "dist/*",
+      "webpack.config.js"
     ]
 }

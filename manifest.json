@@ -13,5 +13,10 @@
         "default_title": "ChromeDB",     
         "default_popup": "test.html"
     },
-    "manifest_version": 2
+    "manifest_version": 2,
+    "content_security_policy": "script-src 'self' 'wasm-eval'; object-src 'self'",
+    "web_accessible_resources": [
+        "main.js",
+        "query.wasm"
+    ]
 }

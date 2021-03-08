@@ -1,6 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ChromeDB = void 0;
+const loader = require("../../node_modules/assemblyscript/lib/loader/index");
+var wasmIs;
+var __getString;
+var __newString;
+loader.instantiate(fetch("query.wasm"), {})
+    .then((module) => {
+    wasmIs = module.exports.is;
+    __getString = module.exports.__getString;
+    __newString = module.exports.__newString;
+});
 class Config {
+    constructor() {
+        this.documents = new Map();
+    }
 }
 //TODO: WASM all
 class FieldCondition {
@@ -9,7 +23,7 @@ class FieldCondition {
         this.action = action;
     }
     is(value) {
-        return this.action.where((obj) => { return obj[this.field] == value; });
+        return this.action.where((obj) => { return obj[this.field] === value; });
     }
     isnt(value) {
         return this.action.where((obj) => { return obj[this.field] != value; });
@@ -44,7 +58,7 @@ class LengthFieldCondition extends FieldCondition {
         super(fc.field, fc.action);
     }
     is(value) {
-        return this.action.where((obj) => { return obj[this.field].length == value; });
+        return this.action.where((obj) => { return obj[this.field].length === value; });
     }
     isnt(value) {
         return this.action.where((obj) => { return obj[this.field].length != value; });
@@ -234,7 +248,6 @@ class ChromeDB {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get('chromedb_config', (res) => {
                 db.config = new Config();
-                console.log("created config");
                 if (res.chromedb_config != undefined) {
                     db.config.documents = res.chromedb_config;
                     if (!(database in db.config.documents)) {
@@ -242,7 +255,6 @@ class ChromeDB {
                     }
                 }
                 else {
-                    console.log("setting empty");
                     db.config.documents[database] = [];
                 }
                 resolve(db);
@@ -264,7 +276,6 @@ class ChromeDB {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.set({ [name]: [] }, () => {
                 this.config.documents[this.database].push(name);
-                console.log(`Added document: ${this.config.documents[this.database]}`);
                 resolve(true);
             });
         });

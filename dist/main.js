@@ -1,1 +1,854 @@
-(()=>{"use strict";var t={19:function(t,n){var e,o=this&&this.__extends||(e=function(t,n){return(e=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,n){t.__proto__=n}||function(t,n){for(var e in n)n.hasOwnProperty(e)&&(t[e]=n[e])})(t,n)},function(t,n){function o(){this.constructor=t}e(t,n),t.prototype=null===n?Object.create(n):(o.prototype=n.prototype,new o)});n.__esModule=!0;var r=function(){this.documents=new Map},i=function(){function t(t,n){this.field=t,this.action=n}return t.prototype.is=function(t){var n=this;return this.action.where((function(e){return e[n.field]==t}))},t.prototype.isnt=function(t){var n=this;return this.action.where((function(e){return e[n.field]!=t}))},t.prototype.greaterThan=function(t){var n=this;return this.action.where((function(e){return e[n.field]>t}))},t.prototype.lesserThan=function(t){var n=this;return this.action.where((function(e){return e[n.field]<t}))},t.prototype.greaterThanOrEqualTo=function(t){var n=this;return this.action.where((function(e){return e[n.field]>=t}))},t.prototype.lesserThanOrEqualTo=function(t){var n=this;return this.action.where((function(e){return e[n.field]<=t}))},t.prototype.isTrue=function(){var t=this;return this.action.where((function(n){return n[t.field]}))},t.prototype.isFalse=function(){var t=this;return this.action.where((function(n){return n[t.field]}))},t.prototype.has=function(t){var n=this;return this.action.where((function(e){return e[n.field].includes(t)}))},t.prototype.length=function(){return new c(this)},t}(),c=function(t){function n(n){return t.call(this,n.field,n.action)||this}return o(n,t),n.prototype.is=function(t){var n=this;return this.action.where((function(e){return e[n.field].length==t}))},n.prototype.isnt=function(t){var n=this;return this.action.where((function(e){return e[n.field].length!=t}))},n.prototype.greaterThan=function(t){var n=this;return this.action.where((function(e){return e[n.field].length>t}))},n.prototype.lesserThan=function(t){var n=this;return this.action.where((function(e){return e[n.field].length<t}))},n.prototype.greaterThanOrEqualTo=function(t){var n=this;return this.action.where((function(e){return e[n.field].length>=t}))},n.prototype.lesserThanOrEqualTo=function(t){var n=this;return this.action.where((function(e){return e[n.field].length<=t}))},n.prototype.isTrue=function(){throw Error("You can't evaluate length as a boolean")},n.prototype.isFalse=function(){throw Error("You can't evaluate length as a boolean")},n.prototype.has=function(t){throw Error("You can't evaluate length as an array")},n.prototype.length=function(){throw Error("You can't take the length of a length")},n}(i),u=function(){function t(t){this.document=t}return t.prototype.where=function(t){var n=this;return"string"==typeof t?new i(t,this):new Promise((function(e,o){chrome.storage.sync.get(n.document,(function(r){if(null!=r[n.document]){for(var i=[],c=0,u=r[n.document];c<u.length;c++){var a=u[c];for(var s in a)a[s]=JSON.parse(a[s]);t(a)&&i.push(a)}e(i)}else o("Error finding document "+n.document)}))}))},t.prototype.all=function(){var t=this;return new Promise((function(n,e){chrome.storage.sync.get(t.document,(function(o){if(null!=o[t.document]){for(var r=0;r<o[t.document].length;r++){var i=o[t.document][r];for(var c in i)i[c]=JSON.parse(i[c]);o[t.document][r]=i}n(o[t.document])}else e("Error finding document "+t.document)}))}))},t}(),a=function(){function t(t,n){this.document=t,this.values=n}return t.prototype.where=function(t){var n=this;return"string"==typeof t?new i(t,this):new Promise((function(e,o){chrome.storage.sync.get(n.document,(function(r){var i;if(null!=r[n.document]){for(var c=0;c<r[n.document].length;c++){var u=r[n.document][c];for(var a in u)u[a]=JSON.parse(u[a]);t(u)&&n.values.forEach((function(t,e){r[n.document][c][e]=JSON.stringify(t)}))}chrome.storage.sync.set(((i={})[n.document]=r,i),(function(){e(!0)}))}else o("Error finding document "+n.document)}))}))},t.prototype.all=function(){var t=this;return new Promise((function(n,e){chrome.storage.sync.get(t.document,(function(o){var r;if(null!=o[t.document]){for(var i=0;i<o[t.document].length;i++)t.values.forEach((function(n,e){o[t.document][i][e]=JSON.stringify(n)}));chrome.storage.sync.set(((r={})[t.document]=o,r),(function(){n(!0)}))}else e("Error finding document "+t.document)}))}))},t}(),s=function(){function t(t){this.name=t}return t.prototype.get=function(){return new u(this.name)},t.prototype.set=function(t){return new a(this.name,t)},t.prototype.add=function(t){var n=this;return new Promise((function(e,o){chrome.storage.sync.get(n.name,(function(r){var i;for(var c in t)t[c]=JSON.stringify(t[c]);null!=r[n.name]?(r[n.name].push(t),chrome.storage.sync.set(((i={})[n.name]=r[n.name],i),(function(){e(!0)}))):o("Error finding document "+n.name)}))}))},t.prototype.addAll=function(t){var n=this;return new Promise((function(e,o){chrome.storage.sync.get(n.name,(function(r){for(var i,c=0,u=t;c<u.length;c++){var a=u[c];for(var s in a)a[s]=JSON.stringify(a[s])}null!=r[n.name]?(r[n.name].addAll(t),chrome.storage.sync.set(((i={})[n.name]=r,i),(function(){e(!0)}))):o("Error finding document "+n.name)}))}))},t}(),f=function(){function t(){}return t.init=function(n){var e=new t;return e.database=n,new Promise((function(t,o){chrome.storage.sync.get("chromedb_config",(function(o){e.config=new r,e.config.documents,console.log("created config"),null!=o.chromedb_config?(e.config.documents=o.chromedb_config,n in e.config.documents||(e.config.documents[n]=[])):(console.log("setting empty"),e.config.documents[n]=[],console.log("setting empty")),t(e)}))}))},t.prototype.doc=function(t){if(this.config.documents[this.database].includes(t))return new s(t);throw Error("Document "+t+" doesn't belong to database "+this.database)},t.prototype.makeDoc=function(t){var n=this;return this.config.documents[this.database].includes(t)?new Promise((function(t,n){t(!1)})):new Promise((function(e,o){var r;chrome.storage.sync.set(((r={})[t]=[],r),(function(){n.config.documents[n.database].push(t),console.log("Added document: "+n.config.documents[n.database]),e(!0)}))}))},t.prototype.deleteDoc=function(t){var n=this;return new Promise((function(e,o){chrome.storage.sync.remove(t,(function(){n.config.documents[n.database].splice(n.config.documents[n.database].indexOf(t),1),e(!0)}))}))},t}();n.ChromeDB=f},367:function(t,n,e){var o=this&&this.__awaiter||function(t,n,e,o){return new(e||(e=Promise))((function(r,i){function c(t){try{a(o.next(t))}catch(t){i(t)}}function u(t){try{a(o.throw(t))}catch(t){i(t)}}function a(t){t.done?r(t.value):new e((function(n){n(t.value)})).then(c,u)}a((o=o.apply(t,n||[])).next())}))},r=this&&this.__generator||function(t,n){var e,o,r,i,c={label:0,sent:function(){if(1&r[0])throw r[1];return r[1]},trys:[],ops:[]};return i={next:u(0),throw:u(1),return:u(2)},"function"==typeof Symbol&&(i[Symbol.iterator]=function(){return this}),i;function u(i){return function(u){return function(i){if(e)throw new TypeError("Generator is already executing.");for(;c;)try{if(e=1,o&&(r=2&i[0]?o.return:i[0]?o.throw||((r=o.return)&&r.call(o),0):o.next)&&!(r=r.call(o,i[1])).done)return r;switch(o=0,r&&(i=[2&i[0],r.value]),i[0]){case 0:case 1:r=i;break;case 4:return c.label++,{value:i[1],done:!1};case 5:c.label++,o=i[1],i=[0];continue;case 7:i=c.ops.pop(),c.trys.pop();continue;default:if(!((r=(r=c.trys).length>0&&r[r.length-1])||6!==i[0]&&2!==i[0])){c=0;continue}if(3===i[0]&&(!r||i[1]>r[0]&&i[1]<r[3])){c.label=i[1];break}if(6===i[0]&&c.label<r[1]){c.label=r[1],r=i;break}if(r&&c.label<r[2]){c.label=r[2],c.ops.push(i);break}r[2]&&c.ops.pop(),c.trys.pop();continue}i=n.call(t,c)}catch(t){i=[6,t],o=0}finally{e=r=0}if(5&i[0])throw i[1];return{value:i[0]?i[1]:void 0,done:!0}}([i,u])}}};n.__esModule=!0;var i=e(19);o(this,void 0,void 0,(function(){var t,n;return r(this,(function(e){switch(e.label){case 0:return[4,i.ChromeDB.init("MyDB")];case 1:return[4,(t=e.sent()).makeDoc("MyDoc")];case 2:return e.sent(),[4,t.doc("MyDoc").add({id:0,content:"hello"})];case 3:return e.sent(),[4,t.doc("MyDoc").get().where("id").is(0)];case 4:return n=e.sent(),console.log(n),[2]}}))}))}},n={};!function e(o){if(n[o])return n[o].exports;var r=n[o]={exports:{}};return t[o].call(r.exports,r,r.exports,e),r.exports}(367)})();
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./js/ts/chromedb.js":
+/*!***************************!*\
+  !*** ./js/ts/chromedb.js ***!
+  \***************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ChromeDB = void 0;
+const loader = __webpack_require__(/*! ../../node_modules/assemblyscript/lib/loader/index */ "./node_modules/assemblyscript/lib/loader/index.js");
+var wasmIs;
+var __getString;
+var __newString;
+loader.instantiate(fetch("query.wasm"), {})
+    .then((module) => {
+    wasmIs = module.exports.is;
+    __getString = module.exports.__getString;
+    __newString = module.exports.__newString;
+});
+class Config {
+    constructor() {
+        this.documents = new Map();
+    }
+}
+//TODO: WASM all
+class FieldCondition {
+    constructor(field, action) {
+        this.field = field;
+        this.action = action;
+    }
+    is(value) {
+        return this.action.where((obj) => { return obj[this.field] === value; });
+    }
+    isnt(value) {
+        return this.action.where((obj) => { return obj[this.field] != value; });
+    }
+    greaterThan(value) {
+        return this.action.where((obj) => { return obj[this.field] > value; });
+    }
+    lesserThan(value) {
+        return this.action.where((obj) => { return obj[this.field] < value; });
+    }
+    greaterThanOrEqualTo(value) {
+        return this.action.where((obj) => { return obj[this.field] >= value; });
+    }
+    lesserThanOrEqualTo(value) {
+        return this.action.where((obj) => { return obj[this.field] <= value; });
+    }
+    isTrue() {
+        return this.action.where((obj) => { return obj[this.field]; });
+    }
+    isFalse() {
+        return this.action.where((obj) => { return obj[this.field]; });
+    }
+    has(value) {
+        return this.action.where((obj) => { return obj[this.field].includes(value); });
+    }
+    length() {
+        return new LengthFieldCondition(this);
+    }
+}
+class LengthFieldCondition extends FieldCondition {
+    constructor(fc) {
+        super(fc.field, fc.action);
+    }
+    is(value) {
+        return this.action.where((obj) => { return obj[this.field].length === value; });
+    }
+    isnt(value) {
+        return this.action.where((obj) => { return obj[this.field].length != value; });
+    }
+    greaterThan(value) {
+        return this.action.where((obj) => { return obj[this.field].length > value; });
+    }
+    lesserThan(value) {
+        return this.action.where((obj) => { return obj[this.field].length < value; });
+    }
+    greaterThanOrEqualTo(value) {
+        return this.action.where((obj) => { return obj[this.field].length >= value; });
+    }
+    lesserThanOrEqualTo(value) {
+        return this.action.where((obj) => { return obj[this.field].length <= value; });
+    }
+    isTrue() {
+        throw Error("You can't evaluate length as a boolean");
+    }
+    isFalse() {
+        throw Error("You can't evaluate length as a boolean");
+    }
+    has(value) {
+        throw Error("You can't evaluate length as an array");
+    }
+    length() {
+        throw Error("You can't take the length of a length");
+    }
+}
+class Get {
+    constructor(document) { this.document = document; }
+    where(conditionOrField) {
+        if (typeof conditionOrField === "string") {
+            return new FieldCondition(conditionOrField, this);
+        }
+        else {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.document, (res) => {
+                    if (res[this.document] != undefined) {
+                        var out = [];
+                        for (var object of res[this.document]) {
+                            for (var key in object) {
+                                object[key] = JSON.parse(object[key]);
+                            }
+                            if (conditionOrField(object)) {
+                                out.push(object);
+                            }
+                        }
+                        resolve(out);
+                    }
+                    else {
+                        reject(`Error finding document ${this.document}`);
+                    }
+                });
+            });
+        }
+    }
+    all() {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.get(this.document, (res) => {
+                if (res[this.document] != undefined) {
+                    for (var i = 0; i < res[this.document].length; i++) {
+                        var object = res[this.document][i];
+                        for (var key in object) {
+                            object[key] = JSON.parse(object[key]);
+                        }
+                        res[this.document][i] = object;
+                    }
+                    resolve(res[this.document]);
+                }
+                else {
+                    reject(`Error finding document ${this.document}`);
+                }
+            });
+        });
+    }
+}
+class Set {
+    constructor(document, values) {
+        this.document = document;
+        this.values = values;
+    }
+    where(conditionOrField) {
+        if (typeof conditionOrField === "string") {
+            return new FieldCondition(conditionOrField, this);
+        }
+        else {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.document, (res) => {
+                    if (res[this.document] != undefined) {
+                        for (var i = 0; i < res[this.document].length; i++) {
+                            var object = res[this.document][i];
+                            for (var key in object) {
+                                object[key] = JSON.parse(object[key]);
+                            }
+                            if (conditionOrField(object)) {
+                                this.values.forEach((val, key) => {
+                                    res[this.document][i][key] = JSON.stringify(val);
+                                });
+                            }
+                        }
+                        chrome.storage.sync.set({ [this.document]: res }, () => {
+                            resolve(true);
+                        });
+                    }
+                    else {
+                        reject(`Error finding document ${this.document}`);
+                    }
+                });
+            });
+        }
+    }
+    //TODO: WASM
+    all() {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.get(this.document, (res) => {
+                if (res[this.document] != undefined) {
+                    for (var i = 0; i < res[this.document].length; i++) {
+                        this.values.forEach((val, key) => {
+                            res[this.document][i][key] = JSON.stringify(val);
+                        });
+                    }
+                    chrome.storage.sync.set({ [this.document]: res }, () => {
+                        resolve(true);
+                    });
+                }
+                else {
+                    reject(`Error finding document ${this.document}`);
+                }
+            });
+        });
+    }
+}
+class Document {
+    constructor(name) {
+        this.name = name;
+    }
+    get() {
+        return new Get(this.name);
+    }
+    set(values) {
+        return new Set(this.name, values);
+    }
+    add(object) {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.get(this.name, (res) => {
+                for (var key in object) {
+                    object[key] = JSON.stringify(object[key]);
+                }
+                if (res[this.name] != undefined) {
+                    res[this.name].push(object);
+                    chrome.storage.sync.set({ [this.name]: res[this.name] }, () => {
+                        resolve(true);
+                    });
+                }
+                else {
+                    reject(`Error finding document ${this.name}`);
+                }
+            });
+        });
+    }
+    addAll(objects) {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.get(this.name, (res) => {
+                for (var object of objects) {
+                    for (var key in object) {
+                        object[key] = JSON.stringify(object[key]);
+                    }
+                }
+                if (res[this.name] != undefined) {
+                    res[this.name].addAll(objects);
+                    chrome.storage.sync.set({ [this.name]: res }, () => {
+                        resolve(true);
+                    });
+                }
+                else {
+                    reject(`Error finding document ${this.name}`);
+                }
+            });
+        });
+    }
+}
+class ChromeDB {
+    static init(database) {
+        var db = new ChromeDB();
+        db.database = database;
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.get('chromedb_config', (res) => {
+                db.config = new Config();
+                if (res.chromedb_config != undefined) {
+                    db.config.documents = res.chromedb_config;
+                    if (!(database in db.config.documents)) {
+                        db.config.documents[database] = [];
+                    }
+                }
+                else {
+                    db.config.documents[database] = [];
+                }
+                resolve(db);
+            });
+        });
+    }
+    doc(name) {
+        if (this.config.documents[this.database].includes(name)) {
+            return new Document(name);
+        }
+        throw Error(`Document ${name} doesn't belong to database ${this.database}`);
+    }
+    makeDoc(name) {
+        if (this.config.documents[this.database].includes(name)) {
+            return new Promise((resolve, reject) => {
+                resolve(false);
+            });
+        }
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.set({ [name]: [] }, () => {
+                this.config.documents[this.database].push(name);
+                resolve(true);
+            });
+        });
+    }
+    deleteDoc(name) {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.remove(name, () => {
+                this.config.documents[this.database].splice(this.config.documents[this.database].indexOf(name), 1);
+                resolve(true);
+            });
+        });
+    }
+}
+exports.ChromeDB = ChromeDB;
+//# sourceMappingURL=chromedb.js.map
+
+/***/ }),
+
+/***/ "./js/ts/main.js":
+/*!***********************!*\
+  !*** ./js/ts/main.js ***!
+  \***********************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const chromedb_1 = __webpack_require__(/*! ./chromedb */ "./js/ts/chromedb.js");
+const main = () => __awaiter(void 0, void 0, void 0, function* () {
+    let client = yield chromedb_1.ChromeDB.init("MyDB");
+    yield client.makeDoc("MyDoc");
+    yield client.doc("MyDoc").add({ "id": 0, "content": "hello" });
+    var obj = yield client.doc("MyDoc").get().where("id").is(0);
+    console.log(obj);
+});
+main();
+//# sourceMappingURL=main.js.map
+
+/***/ }),
+
+/***/ "./node_modules/assemblyscript/lib/loader/index.js":
+/*!*********************************************************!*\
+  !*** ./node_modules/assemblyscript/lib/loader/index.js ***!
+  \*********************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "instantiate": () => (/* binding */ instantiate),
+/* harmony export */   "instantiateSync": () => (/* binding */ instantiateSync),
+/* harmony export */   "instantiateStreaming": () => (/* binding */ instantiateStreaming),
+/* harmony export */   "demangle": () => (/* binding */ demangle),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+// Runtime header offsets
+const ID_OFFSET = -8;
+const SIZE_OFFSET = -4;
+
+// Runtime ids
+const ARRAYBUFFER_ID = 0;
+const STRING_ID = 1;
+// const ARRAYBUFFERVIEW_ID = 2;
+
+// Runtime type information
+const ARRAYBUFFERVIEW = 1 << 0;
+const ARRAY = 1 << 1;
+const STATICARRAY = 1 << 2;
+// const SET = 1 << 3;
+// const MAP = 1 << 4;
+const VAL_ALIGN_OFFSET = 6;
+// const VAL_ALIGN = 1 << VAL_ALIGN_OFFSET;
+const VAL_SIGNED = 1 << 11;
+const VAL_FLOAT = 1 << 12;
+// const VAL_NULLABLE = 1 << 13;
+const VAL_MANAGED = 1 << 14;
+// const KEY_ALIGN_OFFSET = 15;
+// const KEY_ALIGN = 1 << KEY_ALIGN_OFFSET;
+// const KEY_SIGNED = 1 << 20;
+// const KEY_FLOAT = 1 << 21;
+// const KEY_NULLABLE = 1 << 22;
+// const KEY_MANAGED = 1 << 23;
+
+// Array(BufferView) layout
+const ARRAYBUFFERVIEW_BUFFER_OFFSET = 0;
+const ARRAYBUFFERVIEW_DATASTART_OFFSET = 4;
+const ARRAYBUFFERVIEW_DATALENGTH_OFFSET = 8;
+const ARRAYBUFFERVIEW_SIZE = 12;
+const ARRAY_LENGTH_OFFSET = 12;
+const ARRAY_SIZE = 16;
+
+const BIGINT = typeof BigUint64Array !== "undefined";
+const THIS = Symbol();
+
+const STRING_DECODE_THRESHOLD = 32;
+const decoder = new TextDecoder("utf-16le");
+
+/** Gets a string from an U32 and an U16 view on a memory. */
+function getStringImpl(buffer, ptr) {
+  const len = new Uint32Array(buffer)[ptr + SIZE_OFFSET >>> 2] >>> 1;
+  const arr = new Uint16Array(buffer, ptr, len);
+  if (len <= STRING_DECODE_THRESHOLD) {
+    return String.fromCharCode.apply(String, arr);
+  }
+  return decoder.decode(arr);
+}
+
+/** Prepares the base module prior to instantiation. */
+function preInstantiate(imports) {
+  const extendedExports = {};
+
+  function getString(memory, ptr) {
+    if (!memory) return "<yet unknown>";
+    return getStringImpl(memory.buffer, ptr);
+  }
+
+  // add common imports used by stdlib for convenience
+  const env = (imports.env = imports.env || {});
+  env.abort = env.abort || function abort(msg, file, line, colm) {
+    const memory = extendedExports.memory || env.memory; // prefer exported, otherwise try imported
+    throw Error(`abort: ${getString(memory, msg)} at ${getString(memory, file)}:${line}:${colm}`);
+  };
+  env.trace = env.trace || function trace(msg, n, ...args) {
+    const memory = extendedExports.memory || env.memory;
+    console.log(`trace: ${getString(memory, msg)}${n ? " " : ""}${args.slice(0, n).join(", ")}`);
+  };
+  env.seed = env.seed || Date.now;
+  imports.Math = imports.Math || Math;
+  imports.Date = imports.Date || Date;
+
+  return extendedExports;
+}
+
+const E_NOEXPORTRUNTIME = "Operation requires compiling with --exportRuntime";
+const F_NOEXPORTRUNTIME = function() { throw Error(E_NOEXPORTRUNTIME); };
+
+/** Prepares the final module once instantiation is complete. */
+function postInstantiate(extendedExports, instance) {
+  const exports = instance.exports;
+  const memory = exports.memory;
+  const table = exports.table;
+  const __new = exports.__new || F_NOEXPORTRUNTIME;
+  const __pin = exports.__pin || F_NOEXPORTRUNTIME;
+  const __unpin = exports.__unpin || F_NOEXPORTRUNTIME;
+  const __collect = exports.__collect || F_NOEXPORTRUNTIME;
+  const __rtti_base = exports.__rtti_base || ~0; // oob if not present
+
+  extendedExports.__new = __new;
+  extendedExports.__pin = __pin;
+  extendedExports.__unpin = __unpin;
+  extendedExports.__collect = __collect;
+
+  /** Gets the runtime type info for the given id. */
+  function getInfo(id) {
+    const U32 = new Uint32Array(memory.buffer);
+    const count = U32[__rtti_base >>> 2];
+    if ((id >>>= 0) >= count) throw Error(`invalid id: ${id}`);
+    return U32[(__rtti_base + 4 >>> 2) + id * 2];
+  }
+
+  /** Gets and validate runtime type info for the given id for array like objects */
+  function getArrayInfo(id) {
+    const info = getInfo(id);
+    if (!(info & (ARRAYBUFFERVIEW | ARRAY | STATICARRAY))) throw Error(`not an array: ${id}, flags=${info}`);
+    return info;
+  }
+
+  /** Gets the runtime base id for the given id. */
+  function getBase(id) {
+    const U32 = new Uint32Array(memory.buffer);
+    const count = U32[__rtti_base >>> 2];
+    if ((id >>>= 0) >= count) throw Error(`invalid id: ${id}`);
+    return U32[(__rtti_base + 4 >>> 2) + id * 2 + 1];
+  }
+
+  /** Gets the runtime alignment of a collection's values. */
+  function getValueAlign(info) {
+    return 31 - Math.clz32((info >>> VAL_ALIGN_OFFSET) & 31); // -1 if none
+  }
+
+  /** Gets the runtime alignment of a collection's keys. */
+  // function getKeyAlign(info) {
+  //   return 31 - Math.clz32((info >>> KEY_ALIGN_OFFSET) & 31); // -1 if none
+  // }
+
+  /** Allocates a new string in the module's memory and returns its pointer. */
+  function __newString(str) {
+    if (str == null) return 0;
+    const length = str.length;
+    const ptr = __new(length << 1, STRING_ID);
+    const U16 = new Uint16Array(memory.buffer);
+    for (var i = 0, p = ptr >>> 1; i < length; ++i) U16[p + i] = str.charCodeAt(i);
+    return ptr;
+  }
+
+  extendedExports.__newString = __newString;
+
+  /** Reads a string from the module's memory by its pointer. */
+  function __getString(ptr) {
+    if (!ptr) return null;
+    const buffer = memory.buffer;
+    const id = new Uint32Array(buffer)[ptr + ID_OFFSET >>> 2];
+    if (id !== STRING_ID) throw Error(`not a string: ${ptr}`);
+    return getStringImpl(buffer, ptr);
+  }
+
+  extendedExports.__getString = __getString;
+
+  /** Gets the view matching the specified alignment, signedness and floatness. */
+  function getView(alignLog2, signed, float) {
+    const buffer = memory.buffer;
+    if (float) {
+      switch (alignLog2) {
+        case 2: return new Float32Array(buffer);
+        case 3: return new Float64Array(buffer);
+      }
+    } else {
+      switch (alignLog2) {
+        case 0: return new (signed ? Int8Array : Uint8Array)(buffer);
+        case 1: return new (signed ? Int16Array : Uint16Array)(buffer);
+        case 2: return new (signed ? Int32Array : Uint32Array)(buffer);
+        case 3: return new (signed ? BigInt64Array : BigUint64Array)(buffer);
+      }
+    }
+    throw Error(`unsupported align: ${alignLog2}`);
+  }
+
+  /** Allocates a new array in the module's memory and returns its pointer. */
+  function __newArray(id, values) {
+    const info = getArrayInfo(id);
+    const align = getValueAlign(info);
+    const length = values.length;
+    const buf = __new(length << align, info & STATICARRAY ? id : ARRAYBUFFER_ID);
+    let result;
+    if (info & STATICARRAY) {
+      result = buf;
+    } else {
+      __pin(buf);
+      const arr = __new(info & ARRAY ? ARRAY_SIZE : ARRAYBUFFERVIEW_SIZE, id);
+      __unpin(buf);
+      const U32 = new Uint32Array(memory.buffer);
+      U32[arr + ARRAYBUFFERVIEW_BUFFER_OFFSET >>> 2] = buf;
+      U32[arr + ARRAYBUFFERVIEW_DATASTART_OFFSET >>> 2] = buf;
+      U32[arr + ARRAYBUFFERVIEW_DATALENGTH_OFFSET >>> 2] = length << align;
+      if (info & ARRAY) U32[arr + ARRAY_LENGTH_OFFSET >>> 2] = length;
+      result = arr;
+    }
+    const view = getView(align, info & VAL_SIGNED, info & VAL_FLOAT);
+    if (info & VAL_MANAGED) {
+      for (let i = 0; i < length; ++i) {
+        const value = values[i];
+        view[(buf >>> align) + i] = value;
+      }
+    } else {
+      view.set(values, buf >>> align);
+    }
+    return result;
+  }
+
+  extendedExports.__newArray = __newArray;
+
+  /** Gets a live view on an array's values in the module's memory. Infers the array type from RTTI. */
+  function __getArrayView(arr) {
+    const U32 = new Uint32Array(memory.buffer);
+    const id = U32[arr + ID_OFFSET >>> 2];
+    const info = getArrayInfo(id);
+    const align = getValueAlign(info);
+    let buf = info & STATICARRAY
+      ? arr
+      : U32[arr + ARRAYBUFFERVIEW_DATASTART_OFFSET >>> 2];
+    const length = info & ARRAY
+      ? U32[arr + ARRAY_LENGTH_OFFSET >>> 2]
+      : U32[buf + SIZE_OFFSET >>> 2] >>> align;
+    return getView(align, info & VAL_SIGNED, info & VAL_FLOAT).subarray(buf >>>= align, buf + length);
+  }
+
+  extendedExports.__getArrayView = __getArrayView;
+
+  /** Copies an array's values from the module's memory. Infers the array type from RTTI. */
+  function __getArray(arr) {
+    const input = __getArrayView(arr);
+    const len = input.length;
+    const out = new Array(len);
+    for (let i = 0; i < len; i++) out[i] = input[i];
+    return out;
+  }
+
+  extendedExports.__getArray = __getArray;
+
+  /** Copies an ArrayBuffer's value from the module's memory. */
+  function __getArrayBuffer(ptr) {
+    const buffer = memory.buffer;
+    const length = new Uint32Array(buffer)[ptr + SIZE_OFFSET >>> 2];
+    return buffer.slice(ptr, ptr + length);
+  }
+
+  extendedExports.__getArrayBuffer = __getArrayBuffer;
+
+  /** Copies a typed array's values from the module's memory. */
+  function getTypedArray(Type, alignLog2, ptr) {
+    return new Type(getTypedArrayView(Type, alignLog2, ptr));
+  }
+
+  /** Gets a live view on a typed array's values in the module's memory. */
+  function getTypedArrayView(Type, alignLog2, ptr) {
+    const buffer = memory.buffer;
+    const U32 = new Uint32Array(buffer);
+    const bufPtr = U32[ptr + ARRAYBUFFERVIEW_DATASTART_OFFSET >>> 2];
+    return new Type(buffer, bufPtr, U32[bufPtr + SIZE_OFFSET >>> 2] >>> alignLog2);
+  }
+
+  /** Attach a set of get TypedArray and View functions to the exports. */
+  function attachTypedArrayFunctions(ctor, name, align) {
+    extendedExports[`__get${name}`] = getTypedArray.bind(null, ctor, align);
+    extendedExports[`__get${name}View`] = getTypedArrayView.bind(null, ctor, align);
+  }
+
+  [
+    Int8Array,
+    Uint8Array,
+    Uint8ClampedArray,
+    Int16Array,
+    Uint16Array,
+    Int32Array,
+    Uint32Array,
+    Float32Array,
+    Float64Array
+  ].forEach(ctor => {
+    attachTypedArrayFunctions(ctor, ctor.name, 31 - Math.clz32(ctor.BYTES_PER_ELEMENT));
+  });
+
+  if (BIGINT) {
+    [BigUint64Array, BigInt64Array].forEach(ctor => {
+      attachTypedArrayFunctions(ctor, ctor.name.slice(3), 3);
+    });
+  }
+
+  /** Tests whether an object is an instance of the class represented by the specified base id. */
+  function __instanceof(ptr, baseId) {
+    const U32 = new Uint32Array(memory.buffer);
+    let id = U32[ptr + ID_OFFSET >>> 2];
+    if (id <= U32[__rtti_base >>> 2]) {
+      do {
+        if (id == baseId) return true;
+        id = getBase(id);
+      } while (id);
+    }
+    return false;
+  }
+
+  extendedExports.__instanceof = __instanceof;
+
+  // Pull basic exports to extendedExports so code in preInstantiate can use them
+  extendedExports.memory = extendedExports.memory || memory;
+  extendedExports.table  = extendedExports.table  || table;
+
+  // Demangle exports and provide the usual utility on the prototype
+  return demangle(exports, extendedExports);
+}
+
+function isResponse(src) {
+  return typeof Response !== "undefined" && src instanceof Response;
+}
+
+function isModule(src) {
+  return src instanceof WebAssembly.Module;
+}
+
+/** Asynchronously instantiates an AssemblyScript module from anything that can be instantiated. */
+async function instantiate(source, imports = {}) {
+  if (isResponse(source = await source)) return instantiateStreaming(source, imports);
+  const module = isModule(source) ? source : await WebAssembly.compile(source);
+  const extended = preInstantiate(imports);
+  const instance = await WebAssembly.instantiate(module, imports);
+  const exports = postInstantiate(extended, instance);
+  return { module, instance, exports };
+}
+
+/** Synchronously instantiates an AssemblyScript module from a WebAssembly.Module or binary buffer. */
+function instantiateSync(source, imports = {}) {
+  const module = isModule(source) ? source : new WebAssembly.Module(source);
+  const extended = preInstantiate(imports);
+  const instance = new WebAssembly.Instance(module, imports);
+  const exports = postInstantiate(extended, instance);
+  return { module, instance, exports };
+}
+
+/** Asynchronously instantiates an AssemblyScript module from a response, i.e. as obtained by `fetch`. */
+async function instantiateStreaming(source, imports = {}) {
+  if (!WebAssembly.instantiateStreaming) {
+    return instantiate(
+      isResponse(source = await source)
+        ? source.arrayBuffer()
+        : source,
+      imports
+    );
+  }
+  const extended = preInstantiate(imports);
+  const result = await WebAssembly.instantiateStreaming(source, imports);
+  const exports = postInstantiate(extended, result.instance);
+  return { ...result, exports };
+}
+
+/** Demangles an AssemblyScript module's exports to a friendly object structure. */
+function demangle(exports, extendedExports = {}) {
+  const setArgumentsLength = exports["__argumentsLength"]
+    ? length => { exports["__argumentsLength"].value = length; }
+    : exports["__setArgumentsLength"] || exports["__setargc"] || (() => { /* nop */ });
+  for (let internalName in exports) {
+    if (!Object.prototype.hasOwnProperty.call(exports, internalName)) continue;
+    const elem = exports[internalName];
+    let parts = internalName.split(".");
+    let curr = extendedExports;
+    while (parts.length > 1) {
+      let part = parts.shift();
+      if (!Object.prototype.hasOwnProperty.call(curr, part)) curr[part] = {};
+      curr = curr[part];
+    }
+    let name = parts[0];
+    let hash = name.indexOf("#");
+    if (hash >= 0) {
+      const className = name.substring(0, hash);
+      const classElem = curr[className];
+      if (typeof classElem === "undefined" || !classElem.prototype) {
+        const ctor = function(...args) {
+          return ctor.wrap(ctor.prototype.constructor(0, ...args));
+        };
+        ctor.prototype = {
+          valueOf() { return this[THIS]; }
+        };
+        ctor.wrap = function(thisValue) {
+          return Object.create(ctor.prototype, { [THIS]: { value: thisValue, writable: false } });
+        };
+        if (classElem) Object.getOwnPropertyNames(classElem).forEach(name =>
+          Object.defineProperty(ctor, name, Object.getOwnPropertyDescriptor(classElem, name))
+        );
+        curr[className] = ctor;
+      }
+      name = name.substring(hash + 1);
+      curr = curr[className].prototype;
+      if (/^(get|set):/.test(name)) {
+        if (!Object.prototype.hasOwnProperty.call(curr, name = name.substring(4))) {
+          let getter = exports[internalName.replace("set:", "get:")];
+          let setter = exports[internalName.replace("get:", "set:")];
+          Object.defineProperty(curr, name, {
+            get() { return getter(this[THIS]); },
+            set(value) { setter(this[THIS], value); },
+            enumerable: true
+          });
+        }
+      } else {
+        if (name === 'constructor') {
+          (curr[name] = (...args) => {
+            setArgumentsLength(args.length);
+            return elem(...args);
+          }).original = elem;
+        } else { // instance method
+          (curr[name] = function(...args) { // !
+            setArgumentsLength(args.length);
+            return elem(this[THIS], ...args);
+          }).original = elem;
+        }
+      }
+    } else {
+      if (/^(get|set):/.test(name)) {
+        if (!Object.prototype.hasOwnProperty.call(curr, name = name.substring(4))) {
+          Object.defineProperty(curr, name, {
+            get: exports[internalName.replace("set:", "get:")],
+            set: exports[internalName.replace("get:", "set:")],
+            enumerable: true
+          });
+        }
+      } else if (typeof elem === "function" && elem !== setArgumentsLength) {
+        (curr[name] = (...args) => {
+          setArgumentsLength(args.length);
+          return elem(...args);
+        }).original = elem;
+      } else {
+        curr[name] = elem;
+      }
+    }
+  }
+  return extendedExports;
+}
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
+  instantiate,
+  instantiateSync,
+  instantiateStreaming,
+  demangle
+});
+
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		if(__webpack_module_cache__[moduleId]) {
+/******/ 			return __webpack_module_cache__[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __webpack_require__("./js/ts/main.js");
+/******/ 	
+/******/ })()
+;
+//# sourceMappingURL=main.js.map

@@ -12,14 +12,38 @@
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ChromeDB = void 0;
 const loader = __webpack_require__(/*! ../../node_modules/assemblyscript/lib/loader/index */ "./node_modules/assemblyscript/lib/loader/index.js");
-var wasmIs;
+var wasmIs, wasmIsnt, wasmGt, wasmLt, wasmGte, wasmLte, wasmHas;
 var __getString;
 var __newString;
-loader.instantiate(fetch("query.wasm"), {})
+var __getArray;
+var __newArray;
+var MapArray_id;
+const imports = {
+    query: {
+        log: (msgPtr) => {
+            // at the time of call, wasmExample will be initialized
+            console.log('WASM is talking', __getString(msgPtr));
+        }
+    },
+    env: {
+        memory: new WebAssembly.Memory({ initial: 256 }),
+        table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' })
+    }
+};
+loader.instantiate(fetch("query.wasm"), imports)
     .then((module) => {
     wasmIs = module.exports.is;
+    wasmIsnt = module.exports.isnt;
+    wasmGt = module.exports.greaterThan;
+    wasmLt = module.exports.lessThan;
+    wasmGte = module.exports.greaterThanOrEqualTo;
+    wasmLte = module.exports.lessThanOrEqualTo;
+    wasmHas = module.exports.has;
     __getString = module.exports.__getString;
     __newString = module.exports.__newString;
+    __getArray = module.exports.__getArray;
+    __newArray = module.exports.__newArray;
+    MapArray_id = module.exports.MapArray_id;
 });
 class Config {
     constructor() {
@@ -33,22 +57,109 @@ class FieldCondition {
         this.action = action;
     }
     is(value) {
-        return this.action.where((obj) => { return obj[this.field] === value; });
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        console.log(res[this.action.document], this.field, JSON.stringify(value));
+                        var arrPtr = wasmIs(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)));
+                        var arr = __getArray(arrPtr);
+                        resolve(arr);
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] === value; });
+        }
     }
     isnt(value) {
-        return this.action.where((obj) => { return obj[this.field] != value; });
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        resolve(__getArray(wasmIsnt(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] != value; });
+        }
     }
     greaterThan(value) {
-        return this.action.where((obj) => { return obj[this.field] > value; });
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        resolve(__getArray(wasmGt(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] > value; });
+        }
     }
-    lesserThan(value) {
-        return this.action.where((obj) => { return obj[this.field] < value; });
+    lessThan(value) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        resolve(__getArray(wasmLt(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] < value; });
+        }
     }
     greaterThanOrEqualTo(value) {
-        return this.action.where((obj) => { return obj[this.field] >= value; });
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        resolve(__getArray(wasmGte(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] >= value; });
+        }
     }
-    lesserThanOrEqualTo(value) {
-        return this.action.where((obj) => { return obj[this.field] <= value; });
+    lessThanOrEqualTo(value) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        resolve(__getArray(wasmLte(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] <= value; });
+        }
     }
     isTrue() {
         return this.action.where((obj) => { return obj[this.field]; });
@@ -57,7 +168,21 @@ class FieldCondition {
         return this.action.where((obj) => { return obj[this.field]; });
     }
     has(value) {
-        return this.action.where((obj) => { return obj[this.field].includes(value); });
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        resolve(__getArray(wasmHas(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field].includes(value); });
+        }
     }
     length() {
         return new LengthFieldCondition(this);
@@ -76,13 +201,13 @@ class LengthFieldCondition extends FieldCondition {
     greaterThan(value) {
         return this.action.where((obj) => { return obj[this.field].length > value; });
     }
-    lesserThan(value) {
+    lessThan(value) {
         return this.action.where((obj) => { return obj[this.field].length < value; });
     }
     greaterThanOrEqualTo(value) {
         return this.action.where((obj) => { return obj[this.field].length >= value; });
     }
-    lesserThanOrEqualTo(value) {
+    lessThanOrEqualTo(value) {
         return this.action.where((obj) => { return obj[this.field].length <= value; });
     }
     isTrue() {

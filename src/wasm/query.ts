@@ -1,6 +1,6 @@
 export declare function log(msg: string): void;
-
-export const ObjectArray_id = idof<Array<object>>();
+export declare function access(i: i32, key: string): string;
+export declare function free(): void;
 
 function unNull(mapOrNull: object | null): object {
     if (mapOrNull instanceof Map) {
@@ -10,16 +10,14 @@ function unNull(mapOrNull: object | null): object {
     return {};
 }
 
-export function is(list: Array<object | null>, key: string, val: string): Array<object | null> {
-    var out: Array<object | null> = new Array<object | null>();
-    log("id" in unNull(list[0]) ? "true" : "false");
-    log(unNull(list[0])["id"]);
-    log(unNull(list[0])["content"]);
-    for (var i = 0; i < list.length; i ++) {
-        var obj: object = unNull(list[i]);
-        if (key in obj && obj[key] === val) {
-            out.push(obj);
+export function is(length: i32, key: string, val: string): Array<i32> {
+    var out: Array<i32> = [];
+    for (var i = 0; i < length; i ++) {
+        var currentVal = access(i, key);
+        if (currentVal == val) {
+            out.push(i);
         }
+        free();
     }
     return out;
 }

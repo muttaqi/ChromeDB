@@ -1,43 +1,5 @@
 const loader = require("../../node_modules/assemblyscript/lib/loader/index");
 
-var wasmIs: Function, wasmIsnt: Function, wasmGt: Function, wasmLt: Function, wasmGte: Function, wasmLte: Function, wasmHas: Function;
-var __getString;
-var __newString;
-var __getArray;
-var __newArray;
-var ObjectArray_id;
-
-const imports = {
-    query: {
-        log: (msgPtr) => {
-
-            // at the time of call, wasmExample will be initialized
-            console.log('WASM is talking', __getString(msgPtr));
-        }
-    },
-    env: {
-      memory: new WebAssembly.Memory({ initial: 256 }),
-      table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' })
-    }
-};
-
-loader.instantiate(fetch("query.wasm"), imports)
-    .then((module) => {
-        wasmIs = module.exports.is;
-        wasmIsnt = module.exports.isnt;
-        wasmGt = module.exports.greaterThan;
-        wasmLt = module.exports.lessThan;
-        wasmGte = module.exports.greaterThanOrEqualTo;
-        wasmLte = module.exports.lessThanOrEqualTo;
-        wasmHas = module.exports.has;
-
-        __getString = module.exports.__getString;
-        __newString = module.exports.__newString;
-        __getArray = module.exports.__getArray;
-        __newArray = module.exports.__newArray;
-        ObjectArray_id = module.exports.ObjectArray_id;
-    });
-
 class Config {
     documents: Map<string, Array<string>> = new Map<string, Array<string>>();
 }
@@ -57,10 +19,23 @@ class FieldCondition {
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.action.document, (res) => {
                     if (res[this.action.document] != undefined) {
-                        console.log(res[this.action.document], this.field, JSON.stringify(value));
-                        var arrPtr = wasmIs(__newArray(ObjectArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)));
-                        var arr = __getArray(arrPtr);
-                        resolve(arr);
+                        
+                        this.action.db.store = res[this.action.document];
+
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+
+                        var aPtr = this.action.db.wasmIs(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
                     }
 
                     else {
@@ -74,6 +49,7 @@ class FieldCondition {
         }
     }
 
+    /*
     isnt(value: any): Promise<Array<any>> | Promise<boolean> {
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
@@ -199,6 +175,7 @@ class FieldCondition {
     length(): LengthFieldCondition {
         return new LengthFieldCondition(this);
     }
+    */
 }
 
 class LengthFieldCondition extends FieldCondition {
@@ -252,8 +229,12 @@ class LengthFieldCondition extends FieldCondition {
 
 class Get {
     document: string;
+    db: ChromeDB;
 
-    constructor(document: string) { this.document = document; }
+    constructor(db: ChromeDB, document: string) {
+        this.db = db;
+        this.document = document;
+    }
 
     where(condition: (object: any) => boolean): Promise<Array<any>>;
     where(field: string): FieldCondition;
@@ -311,8 +292,10 @@ class Get {
 class Set {
     values: Map<string, any>;
     document: string;
+    db: ChromeDB;
 
-    constructor(document: string, values: Map<string, any>) {
+    constructor(db: ChromeDB, document: string, values: Map<string, any>) {
+        this.db = db;
         this.document = document;
         this.values = values;
     }
@@ -380,17 +363,19 @@ class Set {
 
 class Document {
     name: string;
+    db: ChromeDB;
 
-    constructor(name: string) {
+    constructor(db: ChromeDB, name: string) {
+        this.db = db
         this.name = name;
     }
 
     get(): Get {
-        return new Get(this.name);
+        return new Get(this.db, this.name);
     }
 
     set(values: Map<string, any>) {
-        return new Set(this.name, values);
+        return new Set(this.db, this.name, values);
     }
 
     add(object: any): Promise<boolean> {
@@ -442,9 +427,28 @@ export class ChromeDB {
     config: Config;
     database: string;
 
+    wasmIs: Function;
+    wasmIsnt: Function;
+    wasmGt: Function;
+    wasmLt: Function;
+    wasmGte: Function;
+    wasmLte: Function;
+    wasmHas: Function;
+    __getString: Function;
+    __newString: Function;
+    __getArray: Function;
+    __newArray: Function;
+    __pin: Function;
+    __unpin: Function;
+
+    store: object;
+    ptrStore;
+
     static init(database: string): Promise<ChromeDB> {
         var db = new ChromeDB();
         db.database = database;
+        db.initWASM();
+
         return new Promise<ChromeDB>((resolve, reject) => {
             chrome.storage.sync.get('chromedb_config', (res) => {
                 db.config = new Config();
@@ -462,9 +466,50 @@ export class ChromeDB {
         })
     }
 
+    initWASM() {
+        
+        const imports = {
+            query: {
+                log: (msgPtr) => {
+                    // at the time of call, wasmExample will be initialized
+                    console.log('WASM is talking', this.__getString(msgPtr));
+                },
+                access: (i, keyPtr) => {
+                    this.ptrStore = this.__pin(this.__newString(this.store[i][this.__getString(keyPtr)]));
+                    return this.ptrStore;
+                },
+                free: () => {
+                    this.__unpin(this.ptrStore);
+                }
+            },
+            env: {
+              memory: new WebAssembly.Memory({ initial: 1024 }),
+              table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' })
+            }
+        };
+        
+        loader.instantiate(fetch("query.wasm"), imports)
+            .then((module) => {
+                this.wasmIs = module.exports.is;
+                this.wasmIsnt = module.exports.isnt;
+                this.wasmGt = module.exports.greaterThan;
+                this.wasmLt = module.exports.lessThan;
+                this.wasmGte = module.exports.greaterThanOrEqualTo;
+                this.wasmLte = module.exports.lessThanOrEqualTo;
+                this.wasmHas = module.exports.has;
+        
+                this.__getString = module.exports.__getString;
+                this.__newString = module.exports.__newString;
+                this.__getArray = module.exports.__getArray;
+                this.__newArray = module.exports.__newArray;
+                this.__pin = module.exports.__pin;
+                this.__unpin = module.exports.__unpin;
+            });
+    }
+
     doc(name: string): Document {
         if (this.config.documents[this.database].includes(name)) {
-            return new Document(name);
+            return new Document(this, name);
         }
         throw Error(`Document ${name} doesn't belong to database ${this.database}`);
     }

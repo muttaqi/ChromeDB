@@ -4,7 +4,7 @@
   "description": "My webpack project",
   "main": "index.js",
   "scripts": {
-    "start": "npx asc src/wasm/query.ts -b src/ts/query.wasm --exportRuntime && npx tsc -p . && npx webpack && cp src/ts/query.wasm dist && cp manifest.json ./dist",
+    "start": "npx asc src/wasm/query.ts -b src/ts/query.wasm --exportRuntime --memoryBase 8192 && npx tsc -p . && npx webpack && cp src/ts/query.wasm dist && cp manifest.json ./dist",
     "clean": "rm dist && rm js"
   },
   "repository": {
@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@types/chrome": "0.0.133",
+    "fast-json-stringify": "^2.5.1",
     "fs": "0.0.1-security"
   },
   "browser": {

@@ -12,39 +12,6 @@
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ChromeDB = void 0;
 const loader = __webpack_require__(/*! ../../node_modules/assemblyscript/lib/loader/index */ "./node_modules/assemblyscript/lib/loader/index.js");
-var wasmIs, wasmIsnt, wasmGt, wasmLt, wasmGte, wasmLte, wasmHas;
-var __getString;
-var __newString;
-var __getArray;
-var __newArray;
-var MapArray_id;
-const imports = {
-    query: {
-        log: (msgPtr) => {
-            // at the time of call, wasmExample will be initialized
-            console.log('WASM is talking', __getString(msgPtr));
-        }
-    },
-    env: {
-        memory: new WebAssembly.Memory({ initial: 256 }),
-        table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' })
-    }
-};
-loader.instantiate(fetch("query.wasm"), imports)
-    .then((module) => {
-    wasmIs = module.exports.is;
-    wasmIsnt = module.exports.isnt;
-    wasmGt = module.exports.greaterThan;
-    wasmLt = module.exports.lessThan;
-    wasmGte = module.exports.greaterThanOrEqualTo;
-    wasmLte = module.exports.lessThanOrEqualTo;
-    wasmHas = module.exports.has;
-    __getString = module.exports.__getString;
-    __newString = module.exports.__newString;
-    __getArray = module.exports.__getArray;
-    __newArray = module.exports.__newArray;
-    MapArray_id = module.exports.MapArray_id;
-});
 class Config {
     constructor() {
         this.documents = new Map();
@@ -61,10 +28,18 @@ class FieldCondition {
             return new Promise((resolve, reject) => {
                 chrome.storage.sync.get(this.action.document, (res) => {
                     if (res[this.action.document] != undefined) {
-                        console.log(res[this.action.document], this.field, JSON.stringify(value));
-                        var arrPtr = wasmIs(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)));
-                        var arr = __getArray(arrPtr);
-                        resolve(arr);
+                        this.action.db.store = res[this.action.document];
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                        var aPtr = this.action.db.wasmIs(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
                     }
                     else {
                         reject(`Error finding document ${this.action.document}`);
@@ -75,117 +50,6 @@ class FieldCondition {
         else {
             return this.action.where((obj) => { return obj[this.field] === value; });
         }
-    }
-    isnt(value) {
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmIsnt(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
-                    }
-                    else {
-                        reject(`Error finding document ${this.action.document}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] != value; });
-        }
-    }
-    greaterThan(value) {
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmGt(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
-                    }
-                    else {
-                        reject(`Error finding document ${this.action.document}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] > value; });
-        }
-    }
-    lessThan(value) {
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmLt(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
-                    }
-                    else {
-                        reject(`Error finding document ${this.action.document}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] < value; });
-        }
-    }
-    greaterThanOrEqualTo(value) {
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmGte(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
-                    }
-                    else {
-                        reject(`Error finding document ${this.action.document}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] >= value; });
-        }
-    }
-    lessThanOrEqualTo(value) {
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmLte(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
-                    }
-                    else {
-                        reject(`Error finding document ${this.action.document}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] <= value; });
-        }
-    }
-    isTrue() {
-        return this.action.where((obj) => { return obj[this.field]; });
-    }
-    isFalse() {
-        return this.action.where((obj) => { return obj[this.field]; });
-    }
-    has(value) {
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmHas(__newArray(MapArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))));
-                    }
-                    else {
-                        reject(`Error finding document ${this.action.document}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field].includes(value); });
-        }
-    }
-    length() {
-        return new LengthFieldCondition(this);
     }
 }
 class LengthFieldCondition extends FieldCondition {
@@ -224,7 +88,10 @@ class LengthFieldCondition extends FieldCondition {
     }
 }
 class Get {
-    constructor(document) { this.document = document; }
+    constructor(db, document) {
+        this.db = db;
+        this.document = document;
+    }
     where(conditionOrField) {
         if (typeof conditionOrField === "string") {
             return new FieldCondition(conditionOrField, this);
@@ -272,7 +139,8 @@ class Get {
     }
 }
 class Set {
-    constructor(document, values) {
+    constructor(db, document, values) {
+        this.db = db;
         this.document = document;
         this.values = values;
     }
@@ -328,14 +196,15 @@ class Set {
     }
 }
 class Document {
-    constructor(name) {
+    constructor(db, name) {
+        this.db = db;
         this.name = name;
     }
     get() {
-        return new Get(this.name);
+        return new Get(this.db, this.name);
     }
     set(values) {
-        return new Set(this.name, values);
+        return new Set(this.db, this.name, values);
     }
     add(object) {
         return new Promise((resolve, reject) => {
@@ -380,6 +249,7 @@ class ChromeDB {
     static init(database) {
         var db = new ChromeDB();
         db.database = database;
+        db.initWASM();
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get('chromedb_config', (res) => {
                 db.config = new Config();
@@ -396,9 +266,46 @@ class ChromeDB {
             });
         });
     }
+    initWASM() {
+        const imports = {
+            query: {
+                log: (msgPtr) => {
+                    // at the time of call, wasmExample will be initialized
+                    console.log('WASM is talking', this.__getString(msgPtr));
+                },
+                access: (i, keyPtr) => {
+                    this.ptrStore = this.__pin(this.__newString(this.store[i][this.__getString(keyPtr)]));
+                    return this.ptrStore;
+                },
+                free: () => {
+                    this.__unpin(this.ptrStore);
+                }
+            },
+            env: {
+                memory: new WebAssembly.Memory({ initial: 1024 }),
+                table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' })
+            }
+        };
+        loader.instantiate(fetch("query.wasm"), imports)
+            .then((module) => {
+            this.wasmIs = module.exports.is;
+            this.wasmIsnt = module.exports.isnt;
+            this.wasmGt = module.exports.greaterThan;
+            this.wasmLt = module.exports.lessThan;
+            this.wasmGte = module.exports.greaterThanOrEqualTo;
+            this.wasmLte = module.exports.lessThanOrEqualTo;
+            this.wasmHas = module.exports.has;
+            this.__getString = module.exports.__getString;
+            this.__newString = module.exports.__newString;
+            this.__getArray = module.exports.__getArray;
+            this.__newArray = module.exports.__newArray;
+            this.__pin = module.exports.__pin;
+            this.__unpin = module.exports.__unpin;
+        });
+    }
     doc(name) {
         if (this.config.documents[this.database].includes(name)) {
-            return new Document(name);
+            return new Document(this, name);
         }
         throw Error(`Document ${name} doesn't belong to database ${this.database}`);
     }
@@ -450,9 +357,23 @@ const chromedb_1 = __webpack_require__(/*! ./chromedb */ "./js/ts/chromedb.js");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     let client = yield chromedb_1.ChromeDB.init("MyDB");
     yield client.makeDoc("MyDoc");
-    yield client.doc("MyDoc").add({ "id": 0, "content": "hello" });
-    var obj = yield client.doc("MyDoc").get().where("id").is(0);
+    for (var i = 0; i < 100; i++) {
+        yield client.doc("MyDoc").add({ "id": i, "content": "hello${i}" });
+    }
+    var t0 = performance.now();
+    for (var i = 0; i < 100; i++) {
+        yield client.doc("MyDoc").get().where("id").is(0);
+    }
+    var t1 = performance.now();
+    console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.");
+    //without WASM: 156.01999999489635 milliseconds.
+    //actual demo
+    /*
+    await client.doc("MyDoc").add({"id": 0, "content": "hello"});
+    
+    var obj = await client.doc("MyDoc").get().where("id").is(0);
     console.log(obj);
+    */
 });
 main();
 //# sourceMappingURL=main.js.map

@@ -13,9 +13,23 @@ const chromedb_1 = require("./chromedb");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     let client = yield chromedb_1.ChromeDB.init("MyDB");
     yield client.makeDoc("MyDoc");
-    yield client.doc("MyDoc").add({ "id": 0, "content": "hello" });
-    var obj = yield client.doc("MyDoc").get().where("id").is(0);
+    for (var i = 0; i < 100; i++) {
+        yield client.doc("MyDoc").add({ "id": i, "content": "hello${i}" });
+    }
+    var t0 = performance.now();
+    for (var i = 0; i < 100; i++) {
+        yield client.doc("MyDoc").get().where("id").is(0);
+    }
+    var t1 = performance.now();
+    console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.");
+    //without WASM: 156.01999999489635 milliseconds.
+    //actual demo
+    /*
+    await client.doc("MyDoc").add({"id": 0, "content": "hello"});
+    
+    var obj = await client.doc("MyDoc").get().where("id").is(0);
     console.log(obj);
+    */
 });
 main();
 //# sourceMappingURL=main.js.map

@@ -1,3 +1,6 @@
+import { Datastore } from '@google-cloud/datastore'
+import { Bigtable } from '@google-cloud/bigtable'
+
 const loader = require("../../node_modules/assemblyscript/lib/loader/index");
 
 class Config {

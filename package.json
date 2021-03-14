@@ -31,9 +31,12 @@
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
+    "@google-cloud/bigtable": "^3.3.0",
+    "@google-cloud/datastore": "^6.3.1",
     "@types/chrome": "0.0.133",
     "fast-json-stringify": "^2.5.1",
-    "fs": "0.0.1-security"
+    "fs": "0.0.1-security",
+    "googleapis": "^67.1.1"
   },
   "browser": {
     "fs": false

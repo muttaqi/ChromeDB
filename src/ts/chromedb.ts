@@ -49,13 +49,28 @@ class FieldCondition {
         }
     }
 
-    /*
     isnt(value: any): Promise<Array<any>> | Promise<boolean> {
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.action.document, (res) => {
                     if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmIsnt(__newArray(ObjectArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))))
+
+                        this.action.db.store = res[this.action.document];
+
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+
+                        var aPtr = this.action.db.wasmIsnt(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);                    
                     }
 
                     else {
@@ -74,7 +89,23 @@ class FieldCondition {
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.action.document, (res) => {
                     if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmGt(__newArray(ObjectArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))))
+                        
+                        this.action.db.store = res[this.action.document];
+
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+
+                        var aPtr = this.action.db.wasmGt(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
                     }
 
                     else {
@@ -93,7 +124,23 @@ class FieldCondition {
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.action.document, (res) => {
                     if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmLt(__newArray(ObjectArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))))
+                        
+                        this.action.db.store = res[this.action.document];
+
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+
+                        var aPtr = this.action.db.wasmLt(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
                     }
 
                     else {
@@ -112,7 +159,23 @@ class FieldCondition {
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.action.document, (res) => {
                     if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmGte(__newArray(ObjectArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))))
+                        
+                        this.action.db.store = res[this.action.document];
+
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+
+                        var aPtr = this.action.db.wasmGte(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
                     }
 
                     else {
@@ -131,7 +194,23 @@ class FieldCondition {
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.action.document, (res) => {
                     if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmLte(__newArray(ObjectArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))))
+                        
+                        this.action.db.store = res[this.action.document];
+
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+
+                        var aPtr = this.action.db.wasmLte(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
                     }
 
                     else {
@@ -158,7 +237,23 @@ class FieldCondition {
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.action.document, (res) => {
                     if (res[this.action.document] != undefined) {
-                        resolve(__getArray(wasmHas(__newArray(ObjectArray_id, res[this.action.document]), __newString(this.field), __newString(JSON.stringify(value)))))
+                        
+                        this.action.db.store = res[this.action.document];
+
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+
+                        var aPtr = this.action.db.wasmHas(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
                     }
 
                     else {
@@ -175,7 +270,6 @@ class FieldCondition {
     length(): LengthFieldCondition {
         return new LengthFieldCondition(this);
     }
-    */
 }
 
 class LengthFieldCondition extends FieldCondition {
@@ -477,6 +571,13 @@ export class ChromeDB {
                 access: (i, keyPtr) => {
                     this.ptrStore = this.__pin(this.__newString(this.store[i][this.__getString(keyPtr)]));
                     return this.ptrStore;
+                },
+                accessList: (i, j, keyPtr) => {
+                    this.ptrStore = this.__pin(this.__newString(this.store[i][this.__getString(keyPtr)][j]));
+                    return this.ptrStore;
+                },
+                accessListLength: (i, keyPtr) => {
+                    return this.store[i][this.__getString(keyPtr)].length;
                 },
                 free: () => {
                     this.__unpin(this.ptrStore);

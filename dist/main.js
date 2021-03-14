@@ -51,6 +51,183 @@ class FieldCondition {
             return this.action.where((obj) => { return obj[this.field] === value; });
         }
     }
+    isnt(value) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        this.action.db.store = res[this.action.document];
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                        var aPtr = this.action.db.wasmIsnt(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] != value; });
+        }
+    }
+    greaterThan(value) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        this.action.db.store = res[this.action.document];
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                        var aPtr = this.action.db.wasmGt(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] > value; });
+        }
+    }
+    lessThan(value) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        this.action.db.store = res[this.action.document];
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                        var aPtr = this.action.db.wasmLt(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] < value; });
+        }
+    }
+    greaterThanOrEqualTo(value) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        this.action.db.store = res[this.action.document];
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                        var aPtr = this.action.db.wasmGte(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] >= value; });
+        }
+    }
+    lessThanOrEqualTo(value) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        this.action.db.store = res[this.action.document];
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                        var aPtr = this.action.db.wasmLte(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field] <= value; });
+        }
+    }
+    isTrue() {
+        return this.action.where((obj) => { return obj[this.field]; });
+    }
+    isFalse() {
+        return this.action.where((obj) => { return obj[this.field]; });
+    }
+    has(value) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.action.document, (res) => {
+                    if (res[this.action.document] != undefined) {
+                        this.action.db.store = res[this.action.document];
+                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                        var aPtr = this.action.db.wasmHas(res[this.action.document].length, keyPtr, valPtr);
+                        var a = this.action.db.__getArray(aPtr);
+                        this.action.db.__unpin(keyPtr);
+                        this.action.db.__unpin(valPtr);
+                        var out = [];
+                        for (var i of a) {
+                            out.push(res[this.action.document][i]);
+                        }
+                        resolve(out);
+                    }
+                    else {
+                        reject(`Error finding document ${this.action.document}`);
+                    }
+                });
+            });
+        }
+        else {
+            return this.action.where((obj) => { return obj[this.field].includes(value); });
+        }
+    }
+    length() {
+        return new LengthFieldCondition(this);
+    }
 }
 class LengthFieldCondition extends FieldCondition {
     constructor(fc) {
@@ -277,6 +454,13 @@ class ChromeDB {
                     this.ptrStore = this.__pin(this.__newString(this.store[i][this.__getString(keyPtr)]));
                     return this.ptrStore;
                 },
+                accessList: (i, j, keyPtr) => {
+                    this.ptrStore = this.__pin(this.__newString(this.store[i][this.__getString(keyPtr)][j]));
+                    return this.ptrStore;
+                },
+                accessListLength: (i, keyPtr) => {
+                    return this.store[i][this.__getString(keyPtr)].length;
+                },
                 free: () => {
                     this.__unpin(this.ptrStore);
                 }
@@ -367,6 +551,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     var t1 = performance.now();
     console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.");
     //without WASM: 156.01999999489635 milliseconds.
+    //with WASM: 155.6750000163447 miliseconds
     //actual demo
     /*
     await client.doc("MyDoc").add({"id": 0, "content": "hello"});

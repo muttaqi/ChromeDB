@@ -23,6 +23,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     var t1 = performance.now();
     console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.");
     //without WASM: 156.01999999489635 milliseconds.
+    //with WASM: 155.6750000163447 miliseconds
     //actual demo
     /*
     await client.doc("MyDoc").add({"id": 0, "content": "hello"});

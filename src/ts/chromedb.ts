@@ -1,34 +1,80 @@
-import { Datastore } from '@google-cloud/datastore'
+import { Datastore, Query } from '@google-cloud/datastore'
 import { Bigtable } from '@google-cloud/bigtable'
+import { resolve } from 'node:path';
 
 const loader = require("../../node_modules/assemblyscript/lib/loader/index");
 
 class Config {
-    documents: Map<string, Array<string>> = new Map<string, Array<string>>();
+    collections: Map<string, Array<string>> = new Map<string, Array<string>>();
+}
+
+enum DatabaseType {
+    Local,
+    DataStore,
+    BigTable
 }
 
 //TODO: WASM all
 class FieldCondition {
     field: string;
     action: Get | Set;
+    save: boolean;
+    client: Datastore;
 
     constructor(field: string, action: Get | Set) {
         this.field = field;
         this.action = action;
+        this.save = false;
+    }
+
+    useClient(client: Datastore) {
+        this.client = client;
+        this.save = true;
     }
 
     is(value: any): Promise<Array<any>> | Promise<boolean> {
+
+        if (this.save) {
+            if (this.action instanceof Get) {
+                return new Promise<Array<any>>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        resolve(entities);
+                    })
+                });
+            }
+            else {
+                var set: Set = this.action;
+                return new Promise<boolean>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        var upsertEntities = [];
+                        for (var e of entities) {
+                            upsertEntities.push({
+                                key: e[this.client.KEY],
+                                data: set.values
+                            });
+                        }
+                        
+                        this.client.upsert(upsertEntities, (err) => {
+                            resolve(err == undefined || err.message == "");
+                        });
+                    })
+                })
+            }
+        }
+
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
+                chrome.storage.sync.get(this.action.collection, (res) => {
+                    if (res[this.action.collection] != undefined) {
                         
-                        this.action.db.store = res[this.action.document];
+                        this.action.db.store = res[this.action.collection];
 
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
-                        var aPtr = this.action.db.wasmIs(res[this.action.document].length, keyPtr, valPtr);
+                        var aPtr = this.action.db.wasmIs(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
 
                         this.action.db.__unpin(keyPtr);
@@ -36,13 +82,13 @@ class FieldCondition {
 
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.document][i]);
+                            out.push(res[this.action.collection][i]);
                         }
                         resolve(out);
                     }
 
                     else {
-                        reject(`Error finding document ${this.action.document}`);
+                        reject(`Error finding collection ${this.action.collection}`);
                     }
                 });
             });
@@ -53,17 +99,22 @@ class FieldCondition {
     }
 
     isnt(value: any): Promise<Array<any>> | Promise<boolean> {
+
+        if (this.save) {
+            throw Error("!= is currently not supported by Datastore")
+        }
+
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
+                chrome.storage.sync.get(this.action.collection, (res) => {
+                    if (res[this.action.collection] != undefined) {
 
-                        this.action.db.store = res[this.action.document];
+                        this.action.db.store = res[this.action.collection];
 
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
-                        var aPtr = this.action.db.wasmIsnt(res[this.action.document].length, keyPtr, valPtr);
+                        var aPtr = this.action.db.wasmIsnt(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
 
                         this.action.db.__unpin(keyPtr);
@@ -71,13 +122,13 @@ class FieldCondition {
 
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.document][i]);
+                            out.push(res[this.action.collection][i]);
                         }
                         resolve(out);                    
                     }
 
                     else {
-                        reject(`Error finding document ${this.action.document}`);
+                        reject(`Error finding collection ${this.action.collection}`);
                     }
                 });
             });
@@ -88,17 +139,48 @@ class FieldCondition {
     }
 
     greaterThan(value: number): Promise<Array<any>> | Promise<boolean> {
+
+        if (this.save) {
+            if (this.action instanceof Get) {
+                return new Promise<Array<any>>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, '>', value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        resolve(entities);
+                    })
+                });
+            }
+            else {
+                var set: Set = this.action;
+                return new Promise<boolean>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, '>', value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        var upsertEntities = [];
+                        for (var e of entities) {
+                            upsertEntities.push({
+                                key: e[this.client.KEY],
+                                data: set.values
+                            });
+                        }
+                        
+                        this.client.upsert(upsertEntities, (err) => {
+                            resolve(err == undefined || err.message == "");
+                        });
+                    })
+                })
+            }
+        }
+
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
+                chrome.storage.sync.get(this.action.collection, (res) => {
+                    if (res[this.action.collection] != undefined) {
                         
-                        this.action.db.store = res[this.action.document];
+                        this.action.db.store = res[this.action.collection];
 
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
-                        var aPtr = this.action.db.wasmGt(res[this.action.document].length, keyPtr, valPtr);
+                        var aPtr = this.action.db.wasmGt(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
 
                         this.action.db.__unpin(keyPtr);
@@ -106,13 +188,13 @@ class FieldCondition {
 
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.document][i]);
+                            out.push(res[this.action.collection][i]);
                         }
                         resolve(out);
                     }
 
                     else {
-                        reject(`Error finding document ${this.action.document}`);
+                        reject(`Error finding collection ${this.action.collection}`);
                     }
                 });
             });
@@ -123,17 +205,48 @@ class FieldCondition {
     }
 
     lessThan(value: number): Promise<Array<any>> | Promise<boolean> {
+
+        if (this.save) {
+            if (this.action instanceof Get) {
+                return new Promise<Array<any>>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, '<', value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        resolve(entities);
+                    })
+                });
+            }
+            else {
+                var set: Set = this.action;
+                return new Promise<boolean>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, '<', value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        var upsertEntities = [];
+                        for (var e of entities) {
+                            upsertEntities.push({
+                                key: e[this.client.KEY],
+                                data: set.values
+                            });
+                        }
+                        
+                        this.client.upsert(upsertEntities, (err) => {
+                            resolve(err == undefined || err.message == "");
+                        });
+                    })
+                })
+            }
+        }
+
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
+                chrome.storage.sync.get(this.action.collection, (res) => {
+                    if (res[this.action.collection] != undefined) {
                         
-                        this.action.db.store = res[this.action.document];
+                        this.action.db.store = res[this.action.collection];
 
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
-                        var aPtr = this.action.db.wasmLt(res[this.action.document].length, keyPtr, valPtr);
+                        var aPtr = this.action.db.wasmLt(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
 
                         this.action.db.__unpin(keyPtr);
@@ -141,13 +254,13 @@ class FieldCondition {
 
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.document][i]);
+                            out.push(res[this.action.collection][i]);
                         }
                         resolve(out);
                     }
 
                     else {
-                        reject(`Error finding document ${this.action.document}`);
+                        reject(`Error finding collection ${this.action.collection}`);
                     }
                 });
             });
@@ -158,17 +271,48 @@ class FieldCondition {
     }
 
     greaterThanOrEqualTo(value: number): Promise<Array<any>> | Promise<boolean> {
+
+        if (this.save) {
+            if (this.action instanceof Get) {
+                return new Promise<Array<any>>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, '>=', value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        resolve(entities);
+                    })
+                });
+            }
+            else {
+                var set: Set = this.action;
+                return new Promise<boolean>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, '>=', value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        var upsertEntities = [];
+                        for (var e of entities) {
+                            upsertEntities.push({
+                                key: e[this.client.KEY],
+                                data: set.values
+                            });
+                        }
+                        
+                        this.client.upsert(upsertEntities, (err) => {
+                            resolve(err == undefined || err.message == "");
+                        });
+                    })
+                })
+            }
+        }
+
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
+                chrome.storage.sync.get(this.action.collection, (res) => {
+                    if (res[this.action.collection] != undefined) {
                         
-                        this.action.db.store = res[this.action.document];
+                        this.action.db.store = res[this.action.collection];
 
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
-                        var aPtr = this.action.db.wasmGte(res[this.action.document].length, keyPtr, valPtr);
+                        var aPtr = this.action.db.wasmGte(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
 
                         this.action.db.__unpin(keyPtr);
@@ -176,13 +320,13 @@ class FieldCondition {
 
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.document][i]);
+                            out.push(res[this.action.collection][i]);
                         }
                         resolve(out);
                     }
 
                     else {
-                        reject(`Error finding document ${this.action.document}`);
+                        reject(`Error finding collection ${this.action.collection}`);
                     }
                 });
             });
@@ -193,17 +337,48 @@ class FieldCondition {
     }
 
     lessThanOrEqualTo(value: number): Promise<Array<any>> | Promise<boolean> {
+
+        if (this.save) {
+            if (this.action instanceof Get) {
+                return new Promise<Array<any>>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, '<=', value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        resolve(entities);
+                    })
+                });
+            }
+            else {
+                var set: Set = this.action;
+                return new Promise<boolean>((resolve, reject) => {
+                    const query: Query = this.client.createQuery(this.action.collection).filter(this.field, '<=', value);
+                    this.client.runQuery(query, (err, entities, info) => {
+                        var upsertEntities = [];
+                        for (var e of entities) {
+                            upsertEntities.push({
+                                key: e[this.client.KEY],
+                                data: set.values
+                            });
+                        }
+                        
+                        this.client.upsert(upsertEntities, (err) => {
+                            resolve(err == undefined || err.message == "");
+                        });
+                    })
+                })
+            }
+        }
+
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
+                chrome.storage.sync.get(this.action.collection, (res) => {
+                    if (res[this.action.collection] != undefined) {
                         
-                        this.action.db.store = res[this.action.document];
+                        this.action.db.store = res[this.action.collection];
 
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
-                        var aPtr = this.action.db.wasmLte(res[this.action.document].length, keyPtr, valPtr);
+                        var aPtr = this.action.db.wasmLte(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
 
                         this.action.db.__unpin(keyPtr);
@@ -211,13 +386,13 @@ class FieldCondition {
 
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.document][i]);
+                            out.push(res[this.action.collection][i]);
                         }
                         resolve(out);
                     }
 
                     else {
-                        reject(`Error finding document ${this.action.document}`);
+                        reject(`Error finding collection ${this.action.collection}`);
                     }
                 });
             });
@@ -236,17 +411,22 @@ class FieldCondition {
     }
 
     has(value: any): Promise<Array<any>> | Promise<boolean> {
+
+        if (this.save) {
+            throw Error("'IN' is currently not supported by Datastore");
+        }
+
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.document, (res) => {
-                    if (res[this.action.document] != undefined) {
+                chrome.storage.sync.get(this.action.collection, (res) => {
+                    if (res[this.action.collection] != undefined) {
                         
-                        this.action.db.store = res[this.action.document];
+                        this.action.db.store = res[this.action.collection];
 
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
-                        var aPtr = this.action.db.wasmHas(res[this.action.document].length, keyPtr, valPtr);
+                        var aPtr = this.action.db.wasmHas(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
 
                         this.action.db.__unpin(keyPtr);
@@ -254,13 +434,13 @@ class FieldCondition {
 
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.document][i]);
+                            out.push(res[this.action.collection][i]);
                         }
                         resolve(out);
                     }
 
                     else {
-                        reject(`Error finding document ${this.action.document}`);
+                        reject(`Error finding collection ${this.action.collection}`);
                     }
                 });
             });
@@ -325,12 +505,12 @@ class LengthFieldCondition extends FieldCondition {
 }
 
 class Get {
-    document: string;
+    collection: string;
     db: ChromeDB;
 
-    constructor(db: ChromeDB, document: string) {
+    constructor(db: ChromeDB, collection: string) {
         this.db = db;
-        this.document = document;
+        this.collection = collection;
     }
 
     where(condition: (object: any) => boolean): Promise<Array<any>>;
@@ -342,10 +522,10 @@ class Get {
 
         else {
             return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.document, (res) => {
-                    if (res[this.document] != undefined) {
+                chrome.storage.sync.get(this.collection, (res) => {
+                    if (res[this.collection] != undefined) {
                         var out: Array<any> = [];
-                        for (var object of res[this.document]) {
+                        for (var object of res[this.collection]) {
                             for (var key in object) {
                                 object[key] = JSON.parse(object[key]);
                             }
@@ -357,7 +537,7 @@ class Get {
                     }
 
                     else {
-                        reject(`Error finding document ${this.document}`);
+                        reject(`Error finding collection ${this.collection}`);
                     }
                 });
             });
@@ -366,20 +546,20 @@ class Get {
 
     all(): Promise<Array<any>> {
         return new Promise<Array<any>>((resolve, reject) => {
-            chrome.storage.sync.get(this.document, (res) => {
-                if (res[this.document] != undefined) {
-                    for (var i = 0; i < res[this.document].length; i++) {
-                        var object = res[this.document][i];
+            chrome.storage.sync.get(this.collection, (res) => {
+                if (res[this.collection] != undefined) {
+                    for (var i = 0; i < res[this.collection].length; i++) {
+                        var object = res[this.collection][i];
                         for (var key in object) {
                             object[key] = JSON.parse(object[key]);
                         }
-                        res[this.document][i] = object;
+                        res[this.collection][i] = object;
                     }
-                    resolve(res[this.document]);
+                    resolve(res[this.collection]);
                 }
 
                 else {
-                    reject(`Error finding document ${this.document}`);
+                    reject(`Error finding collection ${this.collection}`);
                 }
             });
         });
@@ -388,12 +568,12 @@ class Get {
 
 class Set {
     values: Map<string, any>;
-    document: string;
+    collection: string;
     db: ChromeDB;
 
-    constructor(db: ChromeDB, document: string, values: Map<string, any>) {
+    constructor(db: ChromeDB, collection: string, values: Map<string, any>) {
         this.db = db;
-        this.document = document;
+        this.collection = collection;
         this.values = values;
     }
 
@@ -406,28 +586,28 @@ class Set {
 
         else {
             return new Promise<boolean>((resolve, reject) => {
-                chrome.storage.sync.get(this.document, (res) => {
-                    if (res[this.document] != undefined) {
-                        for (var i = 0; i < res[this.document].length; i++) {
-                            var object = res[this.document][i];
+                chrome.storage.sync.get(this.collection, (res) => {
+                    if (res[this.collection] != undefined) {
+                        for (var i = 0; i < res[this.collection].length; i++) {
+                            var object = res[this.collection][i];
                             for (var key in object) {
                                 object[key] = JSON.parse(object[key]);
                             }
 
                             if (conditionOrField(object)) {
                                 this.values.forEach((val: any, key: string) => {
-                                    res[this.document][i][key] = JSON.stringify(val);
+                                    res[this.collection][i][key] = JSON.stringify(val);
                                 });
                             }
                         }
 
-                        chrome.storage.sync.set({ [this.document]: res }, () => {
+                        chrome.storage.sync.set({ [this.collection]: res }, () => {
                             resolve(true);
                         });
                     }
 
                     else {
-                        reject(`Error finding document ${this.document}`);
+                        reject(`Error finding collection ${this.collection}`);
                     }
                 });
             });
@@ -437,28 +617,28 @@ class Set {
     //TODO: WASM
     all(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            chrome.storage.sync.get(this.document, (res) => {
-                if (res[this.document] != undefined) {
-                    for (var i = 0; i < res[this.document].length; i++) {
+            chrome.storage.sync.get(this.collection, (res) => {
+                if (res[this.collection] != undefined) {
+                    for (var i = 0; i < res[this.collection].length; i++) {
                         this.values.forEach((val: any, key: string) => {
-                            res[this.document][i][key] = JSON.stringify(val);
+                            res[this.collection][i][key] = JSON.stringify(val);
                         });
                     }
 
-                    chrome.storage.sync.set({ [this.document]: res }, () => {
+                    chrome.storage.sync.set({ [this.collection]: res }, () => {
                         resolve(true);
                     });
                 }
 
                 else {
-                    reject(`Error finding document ${this.document}`);
+                    reject(`Error finding collection ${this.collection}`);
                 }
             });
         });
     }
 }
 
-class Document {
+class Collection {
     name: string;
     db: ChromeDB;
 
@@ -490,7 +670,7 @@ class Document {
                 }
 
                 else {
-                    reject(`Error finding document ${this.name}`);
+                    reject(`Error finding collection ${this.name}`);
                 }
             });
         });
@@ -513,7 +693,7 @@ class Document {
                 }
 
                 else {
-                    reject(`Error finding document ${this.name}`);
+                    reject(`Error finding collection ${this.name}`);
                 }
             });
         });
@@ -550,13 +730,13 @@ export class ChromeDB {
             chrome.storage.sync.get('chromedb_config', (res) => {
                 db.config = new Config();
                 if (res.chromedb_config != undefined) {
-                    db.config.documents = res.chromedb_config;
-                    if (!(database in db.config.documents)) {
-                        db.config.documents[database] = [];
+                    db.config.collections = res.chromedb_config;
+                    if (!(database in db.config.collections)) {
+                        db.config.collections[database] = [];
                     }
                 }
                 else {
-                    db.config.documents[database] = [];
+                    db.config.collections[database] = [];
                 }
                 resolve(db);
             });
@@ -611,15 +791,15 @@ export class ChromeDB {
             });
     }
 
-    doc(name: string): Document {
-        if (this.config.documents[this.database].includes(name)) {
-            return new Document(this, name);
+    collection(name: string): Collection {
+        if (this.config.collections[this.database].includes(name)) {
+            return new Collection(this, name);
         }
-        throw Error(`Document ${name} doesn't belong to database ${this.database}`);
+        throw Error(`Collection ${name} doesn't belong to database ${this.database}`);
     }
 
-    makeDoc(name: string): Promise<boolean> {
-        if (this.config.documents[this.database].includes(name)) {
+    makeCollection(name: string): Promise<boolean> {
+        if (this.config.collections[this.database].includes(name)) {
             return new Promise<boolean>((resolve, reject) => {
                 resolve(false);
             });
@@ -627,7 +807,7 @@ export class ChromeDB {
 
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.set({ [name]: [] }, () => {
-                this.config.documents[this.database].push(name);
+                this.config.collections[this.database].push(name);
                 resolve(true);
             });
         });
@@ -636,7 +816,7 @@ export class ChromeDB {
     deleteDoc(name: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.remove(name, () => {
-                this.config.documents[this.database].splice(this.config.documents[this.database].indexOf(name), 1);
+                this.config.collections[this.database].splice(this.config.collections[this.database].indexOf(name), 1);
                 resolve(true);
             });
         });

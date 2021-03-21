@@ -1,4 +1,4 @@
-![ChromeDB]("assets/chromedb.png")
+![ChromeDB](assets/chromedb.png)
 
 # Background
 

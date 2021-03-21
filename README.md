@@ -46,5 +46,4 @@ GCP was the most viable cloud integration option because of its well-documented,
 
 # Future plans
 
-* Implement caching mechanism
 * Integrate Bigtable's HTTP API

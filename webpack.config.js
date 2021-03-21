@@ -9,12 +9,6 @@ module.exports = {
   entry: './js/ts/main.js',
   plugins: [
     new webpack.ProgressPlugin(),
-    new webpack.ProvidePlugin({
-      process: 'process/browser'
-    }),
-    new webpack.ProvidePlugin({
-      Buffer: ['buffer', 'Buffer'],
-    })
   ],
 
   module: {
@@ -29,24 +23,8 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     fallback: {
-      "util": require.resolve("util"),
-      "assert": require.resolve("assert"),
-      "https": require.resolve("https-browserify"),
       "http": require.resolve("stream-http"),
-      "tls": require.resolve("tls"),
-      "net": require.resolve("net"),
-      "url": require.resolve("url"),
-      "crypto": require.resolve("crypto-browserify"),
-      "stream": require.resolve("stream"),
-      "buffer": require.resolve("buffer-browserify"),
-      "zlib": require.resolve("browserify-zlib"),
-      "querystring": require.resolve("querystring"),
-      "path": require.resolve("path-browserify"),
-      "os": require.resolve("os-browserify/browser"),
-      "child_process": false,
-      "fs": require.resolve("browserify-fs"),
-      "dns": require.resolve("dns"),
-      "dgram": require.resolve("dgram-browserify")
+      "https": require.resolve("https-browserify"),
     }
   },
 

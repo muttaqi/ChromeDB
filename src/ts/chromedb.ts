@@ -146,6 +146,7 @@ class FieldCondition {
         if (this.action.databaseType == DatabaseType.Bigtable) {
             if (this.action instanceof Get) {
                 return new Promise<Array<any>>((resolve, reject) => {
+                    
                 });
             }
             else {
@@ -1107,11 +1108,11 @@ class Collection {
     }
 
     get(): Get {
-        return new Get(this.db, this.name, DatabaseType.Local);
+        return new Get(this.db, this.name, this.db.databaseType);
     }
 
     set(values: Map<string, any>) {
-        return new Set(this.db, this.name, values, DatabaseType.Local);
+        return new Set(this.db, this.name, values, this.db.databaseType);
     }
 
     add(object: any): Promise<boolean> {

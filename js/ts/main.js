@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const chromedb_1 = require("./chromedb");
+var Buffer = require('buffer/').Buffer;
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     let client = yield chromedb_1.ChromeDB.init("MyDB");
     yield client.makeCollection("MyCollection");

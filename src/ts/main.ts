@@ -1,5 +1,8 @@
 import {ChromeDB} from "./chromedb"
 
+declare var process: any;
+var Buffer = require('buffer/').Buffer
+
 const main = async () => {
     let client: ChromeDB = await ChromeDB.init("MyDB");
     await client.makeCollection("MyCollection");

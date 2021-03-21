@@ -4,7 +4,7 @@
   "description": "My webpack project",
   "main": "index.js",
   "scripts": {
-    "start": "npx asc src/wasm/query.ts -b src/ts/query.wasm --exportRuntime --memoryBase 8192 && npx tsc -p . && npx webpack && cp src/ts/query.wasm dist && cp manifest.json ./dist",
+    "start": "npx asc src/wasm/query.ts -b src/ts/query.wasm --exportRuntime --memoryBase 8192 && npx tsc -p . && npx webpack && cp src/ts/query.wasm dist && cp manifest.json ./dist && sed -i \"s/GrpcClient()/GrpcClient({auth: {}})/g\" dist/main.js",
     "clean": "rm dist && rm js"
   },
   "repository": {
@@ -34,9 +34,37 @@
     "@google-cloud/bigtable": "^3.3.0",
     "@google-cloud/datastore": "^6.3.1",
     "@types/chrome": "0.0.133",
+    "Buffer": "0.0.0",
+    "assert": "^2.0.0",
+    "browserify-fs": "^1.0.0",
+    "browserify-zlib": "^0.2.0",
+    "buffer": "^6.0.3",
+    "buffer-browserify": "^0.2.5",
+    "child_process": "^1.0.2",
+    "crypto": "^1.0.1",
+    "crypto-browserify": "^3.12.0",
+    "dgram": "^1.0.1",
+    "dgram-browserify": "0.0.13",
+    "dns": "^0.2.2",
     "fast-json-stringify": "^2.5.1",
     "fs": "0.0.1-security",
-    "googleapis": "^67.1.1"
+    "googleapis": "^67.1.1",
+    "http": "0.0.1-security",
+    "http2": "^3.3.7",
+    "https": "^1.0.0",
+    "https-browserify": "^1.0.0",
+    "install": "^0.13.0",
+    "net": "^1.0.2",
+    "os-browserify": "^0.3.0",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
+    "querystring": "^0.2.1",
+    "request": "^2.88.2",
+    "stream": "0.0.2",
+    "stream-http": "^3.1.1",
+    "tls": "0.0.1",
+    "url": "^0.11.0",
+    "util": "^0.12.3"
   },
   "browser": {
     "fs": false

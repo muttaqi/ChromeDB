@@ -12,6 +12,15 @@ enum DatabaseType {
     Bigtable
 }
 
+interface CachedAction {
+    collection: string,
+    action: string;
+    values: string;
+    field: string;
+    op: string;
+    value: string;
+}
+
 //TODO: WASM all
 class FieldCondition {
     field: string;
@@ -23,6 +32,20 @@ class FieldCondition {
     }
 
     is(value: any): Promise<Array<any>> | Promise<boolean> {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "is",
+            value: value
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
@@ -60,7 +83,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                            .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "is",
+                                    value: value
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
 
@@ -128,6 +164,8 @@ class FieldCondition {
 
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 })
                             })
@@ -231,6 +269,20 @@ class FieldCondition {
     }
 
     greaterThan(value: number): Promise<Array<any>> | Promise<boolean> {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "greaterThan",
+            value: value.toString()
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
@@ -268,7 +320,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                            .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "greaterThan",
+                                    value: value.toString()
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
 
@@ -336,6 +401,8 @@ class FieldCondition {
 
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 })
                             })
@@ -386,6 +453,20 @@ class FieldCondition {
     }
 
     lessThan(value: number): Promise<Array<any>> | Promise<boolean> {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "lessThan",
+            value: value.toString()
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
@@ -423,7 +504,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                            .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "lessThan",
+                                    value: value.toString()
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
 
@@ -491,6 +585,8 @@ class FieldCondition {
 
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 })
                             })
@@ -541,6 +637,20 @@ class FieldCondition {
     }
 
     greaterThanOrEqualTo(value: number): Promise<Array<any>> | Promise<boolean> {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "greaterThanOrEqualTo",
+            value: value.toString()
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
@@ -578,7 +688,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                            .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "greaterThanOrEqualTo",
+                                    value: value.toString()
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
 
@@ -646,6 +769,8 @@ class FieldCondition {
 
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 })
                             })
@@ -696,6 +821,20 @@ class FieldCondition {
     }
 
     lessThanOrEqualTo(value: number): Promise<Array<any>> | Promise<boolean> {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "lessThanOrEqualTo",
+            value: value.toString()
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
@@ -733,7 +872,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                            .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "lessThanOrEqualTo",
+                                    value: value.toString()
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
 
@@ -801,6 +953,8 @@ class FieldCondition {
 
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 })
                             })
@@ -975,6 +1129,11 @@ class Get {
         }
 
         else {
+
+            if (this.databaseType != DatabaseType.Local) {
+                throw Error("Can't use javascript condition for a cloud database")
+            }
+
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.collection, (res) => {
                     if (res[this.collection] != undefined) {
@@ -1040,11 +1199,17 @@ class Set {
     where(condition: (object: any) => boolean): Promise<boolean>;
     where(field: string): FieldCondition;
     where(conditionOrField: any): any {
+
         if (typeof conditionOrField === "string") {
             return new FieldCondition(conditionOrField, this);
         }
 
         else {
+
+            if (this.databaseType != DatabaseType.Local) {
+                throw Error("Can't use javascript condition for a cloud database")
+            }
+
             return new Promise<boolean>((resolve, reject) => {
                 chrome.storage.sync.get(this.collection, (res) => {
                     if (res[this.collection] != undefined) {
@@ -1116,6 +1281,12 @@ class Collection {
     }
 
     add(object: any): Promise<boolean> {
+        if (this.db.databaseType == DatabaseType.Local) {
+            return this.addLocal(object);
+        }
+    }
+
+    addLocal(object: any): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.get(this.name, (res) => {
                 for (var key in object) {
@@ -1165,6 +1336,7 @@ export class ChromeDB {
     database: string;
     databaseType: DatabaseType;
     projectID: string;
+    cache: CachedAction[];
 
     wasmIs: Function;
     wasmIsnt: Function;
@@ -1186,6 +1358,8 @@ export class ChromeDB {
     static init(database: string): Promise<ChromeDB> {
         var db = new ChromeDB();
         db.database = database;
+        db.databaseType = DatabaseType.Local;
+        db.cache = [];
         db.initWASM();
 
         return new Promise<ChromeDB>((resolve, reject) => {
@@ -1284,7 +1458,7 @@ export class ChromeDB {
         });
     }
 
-    deleteDoc(name: string): Promise<boolean> {
+    deleteCollection(name: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.remove(name, () => {
                 this.config.collections[this.database].splice(this.config.collections[this.database].indexOf(name), 1);

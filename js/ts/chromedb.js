@@ -21,6 +21,20 @@ class FieldCondition {
         this.action = action;
     }
     is(value) {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "is",
+            value: value
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
                 return new Promise((resolve, reject) => {
@@ -54,7 +68,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                                .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "is",
+                                    value: value
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
                     req.write(body);
@@ -115,6 +142,8 @@ class FieldCondition {
                             };
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 });
                             });
@@ -197,6 +226,20 @@ class FieldCondition {
         }
     }
     greaterThan(value) {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "greaterThan",
+            value: value.toString()
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
                 return new Promise((resolve, reject) => {
@@ -230,7 +273,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                                .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "greaterThan",
+                                    value: value.toString()
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
                     req.write(body);
@@ -291,6 +347,8 @@ class FieldCondition {
                             };
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 });
                             });
@@ -331,6 +389,20 @@ class FieldCondition {
         }
     }
     lessThan(value) {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "lessThan",
+            value: value.toString()
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
                 return new Promise((resolve, reject) => {
@@ -364,7 +436,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                                .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "lessThan",
+                                    value: value.toString()
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
                     req.write(body);
@@ -425,6 +510,8 @@ class FieldCondition {
                             };
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 });
                             });
@@ -465,6 +552,20 @@ class FieldCondition {
         }
     }
     greaterThanOrEqualTo(value) {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "greaterThanOrEqualTo",
+            value: value.toString()
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
                 return new Promise((resolve, reject) => {
@@ -498,7 +599,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                                .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "greaterThanOrEqualTo",
+                                    value: value.toString()
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
                     req.write(body);
@@ -559,6 +673,8 @@ class FieldCondition {
                             };
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 });
                             });
@@ -599,6 +715,20 @@ class FieldCondition {
         }
     }
     lessThanOrEqualTo(value) {
+        var cacheRep = {
+            collection: this.action.collection,
+            action: "Get",
+            values: "",
+            field: this.field,
+            op: "lessThanOrEqualTo",
+            value: value.toString()
+        };
+        for (var cache of this.action.db.cache) {
+            if (cache == cacheRep) {
+                this.action.databaseType = DatabaseType.Local;
+                break;
+            }
+        }
         if (this.action.databaseType == DatabaseType.Datastore) {
             if (this.action instanceof Get) {
                 return new Promise((resolve, reject) => {
@@ -632,7 +762,20 @@ class FieldCondition {
                             for (var entRes of d.batch.entityResults) {
                                 entities.push(entRes.entity);
                             }
-                            resolve(entities);
+                            this.action.db.makeCollection(this.action.collection);
+                            var coll = this.action.db.collection(this.action.collection);
+                            coll.addLocal(entities)
+                                .then(res => {
+                                this.action.db.cache.push({
+                                    collection: this.action.collection,
+                                    action: "Get",
+                                    values: "",
+                                    field: this.field,
+                                    op: "lessThanOrEqualTo",
+                                    value: value.toString()
+                                });
+                                resolve(entities);
+                            });
                         });
                     });
                     req.write(body);
@@ -693,6 +836,8 @@ class FieldCondition {
                             };
                             const req2 = https.request(opt2, res2 => {
                                 res2.on('data', d2 => {
+                                    this.action.db.cache = [];
+                                    this.action.db.deleteCollection(this.action.collection);
                                     resolve(true);
                                 });
                             });
@@ -822,6 +967,9 @@ class Get {
             return new FieldCondition(conditionOrField, this);
         }
         else {
+            if (this.databaseType != DatabaseType.Local) {
+                throw Error("Can't use javascript condition for a cloud database");
+            }
             return new Promise((resolve, reject) => {
                 chrome.storage.sync.get(this.collection, (res) => {
                     if (res[this.collection] != undefined) {
@@ -878,6 +1026,9 @@ class Set {
             return new FieldCondition(conditionOrField, this);
         }
         else {
+            if (this.databaseType != DatabaseType.Local) {
+                throw Error("Can't use javascript condition for a cloud database");
+            }
             return new Promise((resolve, reject) => {
                 chrome.storage.sync.get(this.collection, (res) => {
                     if (res[this.collection] != undefined) {
@@ -930,12 +1081,17 @@ class Collection {
         this.name = name;
     }
     get() {
-        return new Get(this.db, this.name, DatabaseType.Local);
+        return new Get(this.db, this.name, this.db.databaseType);
     }
     set(values) {
-        return new Set(this.db, this.name, values, DatabaseType.Local);
+        return new Set(this.db, this.name, values, this.db.databaseType);
     }
     add(object) {
+        if (this.db.databaseType == DatabaseType.Local) {
+            return this.addLocal(object);
+        }
+    }
+    addLocal(object) {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get(this.name, (res) => {
                 for (var key in object) {
@@ -978,6 +1134,8 @@ class ChromeDB {
     static init(database) {
         var db = new ChromeDB();
         db.database = database;
+        db.databaseType = DatabaseType.Local;
+        db.cache = [];
         db.initWASM();
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get('chromedb_config', (res) => {
@@ -1064,7 +1222,7 @@ class ChromeDB {
             });
         });
     }
-    deleteDoc(name) {
+    deleteCollection(name) {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.remove(name, () => {
                 this.config.collections[this.database].splice(this.config.collections[this.database].indexOf(name), 1);

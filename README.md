@@ -2,7 +2,7 @@
 
 # Background
 
-ChromeDB has two main motivations. Firstly it is meant as a powerful NoSQL wrapper for Chrome's sync and local storage APIs. Secondly, it is meant to integrate with GCP databases as a caching mechanism.
+ChromeDB has two main motivations. Firstly it is meant as a powerful NoSQL wrapper for Chrome's sync and local storage APIs. Secondly, it is meant to integrate with HTTP database APIs as a caching mechanism.
 
 # Usage
 
@@ -34,7 +34,7 @@ In other words, Webpack your javascript, copy the query.wasm to the dist folder 
 
 # Using GCP Datastore
 
-ChromeDB is compatible with any RESTful database API. To demonstrate this, an experimental backend for GCP Datastore has been implemented. Call the following function in your ChromeDB client before retrieving a collection:
+ChromeDB is compatible with any RESTful database API. GCP in particular offers out-of-the-box HTTP APIs for Datastore and BigTable. An experimental backend for GCP Datastore has been implemented, and can be used by calling the following function in your ChromeDB client before retrieving a collection:
 
 ```javascript
 client.useDatastore(projectID);

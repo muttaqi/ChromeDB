@@ -34,15 +34,11 @@ In other words, Webpack your javascript, copy the query.wasm to the dist folder 
 
 # Using GCP Datastore
 
-Call the following function in your ChromeDB client before retrieving a collection:
+ChromeDB is compatible with any RESTful database API. To demonstrate this, an experimental backend for GCP Datastore has been implemented. Call the following function in your ChromeDB client before retrieving a collection:
 
 ```javascript
 client.useDatastore(projectID);
 ```
-
-# Why GCP?
-
-GCP was the most viable cloud integration option because of its well-documented, fully supported HTTP REST API that is usable without any additional legwork.
 
 # Future plans
 

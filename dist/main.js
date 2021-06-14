@@ -46,125 +46,7 @@ class FieldCondition {
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                                .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "is",
-                                    value: value
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set = this.action;
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                }
-                            };
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                });
-                            });
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
+            return this.datastoreRequest(value, "EQUAL");
         }
         if (this.action.databaseType == DatabaseType.Bigtable) {
             if (this.action instanceof Get) {
@@ -177,63 +59,13 @@ class FieldCondition {
                 });
             }
         }
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        this.action.db.store = res[this.action.collection];
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-                        var aPtr = this.action.db.wasmIs(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] === value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmIs);
     }
     isnt(value) {
         if (this.action.databaseType == DatabaseType.Datastore) {
-            throw Error("!= is currently not supported by Datastore");
+            throw Error("Inequality is currently not supported by Datastore");
         }
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        this.action.db.store = res[this.action.collection];
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-                        var aPtr = this.action.db.wasmIsnt(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] != value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmIsnt);
     }
     greaterThan(value) {
         var cacheRep = {
@@ -251,152 +83,9 @@ class FieldCondition {
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "GREATER_THAN",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                                .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "greaterThan",
-                                    value: value.toString()
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set = this.action;
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "GREATER_THAN",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                }
-                            };
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                });
-                            });
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
+            return this.datastoreRequest(value, "GREATER_THAN");
         }
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        this.action.db.store = res[this.action.collection];
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-                        var aPtr = this.action.db.wasmGt(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] > value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmGt);
     }
     lessThan(value) {
         var cacheRep = {
@@ -414,152 +103,9 @@ class FieldCondition {
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "LESS_THAN",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                                .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "lessThan",
-                                    value: value.toString()
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set = this.action;
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "LESS_THAN",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                }
-                            };
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                });
-                            });
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
+            return this.datastoreRequest(value, "LESS_THAN");
         }
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        this.action.db.store = res[this.action.collection];
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-                        var aPtr = this.action.db.wasmLt(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] < value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmLt);
     }
     greaterThanOrEqualTo(value) {
         var cacheRep = {
@@ -577,152 +123,9 @@ class FieldCondition {
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "GREATER_THAN_OR_EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                                .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "greaterThanOrEqualTo",
-                                    value: value.toString()
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set = this.action;
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "GREATER_THAN_OR_EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                }
-                            };
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                });
-                            });
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
+            return this.datastoreRequest(value, "GREATER_THAN_OR_EQUAL");
         }
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        this.action.db.store = res[this.action.collection];
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-                        var aPtr = this.action.db.wasmGte(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] >= value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmGte);
     }
     lessThanOrEqualTo(value) {
         var cacheRep = {
@@ -740,152 +143,9 @@ class FieldCondition {
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "LESS_THAN_OR_EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                                .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "lessThanOrEqualTo",
-                                    value: value.toString()
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set = this.action;
-                return new Promise((resolve, reject) => {
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "LESS_THAN_OR_EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                }
-                            };
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                });
-                            });
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-                    req.write(body);
-                    req.end();
-                });
-            }
+            return this.datastoreRequest(value, "LESS_THAN_OR_EQUAL");
         }
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        this.action.db.store = res[this.action.collection];
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-                        var aPtr = this.action.db.wasmLte(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] <= value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmLte);
     }
     isTrue() {
         return this.action.where((obj) => { return obj[this.field]; });
@@ -897,6 +157,137 @@ class FieldCondition {
         if (this.action.databaseType == DatabaseType.Datastore) {
             throw Error("'IN' is currently not supported by Datastore");
         }
+        return this.wasmQuery(value, this.action.db.wasmHas);
+    }
+    length() {
+        return new LengthFieldCondition(this);
+    }
+    datastoreRequest(value, comparator) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+                const body = JSON.stringify({
+                    query: {
+                        filter: {
+                            propertyFilter: {
+                                property: {
+                                    name: this.field
+                                },
+                                op: comparator,
+                                value: {
+                                    stringValue: value
+                                }
+                            }
+                        }
+                    }
+                });
+                var field = this.field;
+                var action = this.action;
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState == 4) {
+                        var res = JSON.parse(xhr.responseText);
+                        console.log(res);
+                        var d = res.data;
+                        var entities = [];
+                        for (var entRes of d.batch.entityResults) {
+                            entities.push(entRes.entity);
+                        }
+                        action.db.makeCollection(action.collection);
+                        var coll = action.db.collection(action.collection);
+                        coll.addLocal(entities)
+                            .then(res => {
+                            action.db.cache.push({
+                                collection: action.collection,
+                                action: "Get",
+                                values: "",
+                                field: field,
+                                op: "is",
+                                value: value
+                            });
+                            resolve(entities);
+                        });
+                    }
+                    else {
+                        console.log("Datastore query failed.");
+                    }
+                };
+                xhr.send(body);
+            });
+        }
+        else {
+            var set = this.action;
+            return new Promise((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+                const body = JSON.stringify({
+                    query: {
+                        filter: {
+                            propertyFilter: {
+                                property: {
+                                    name: this.field
+                                },
+                                op: "EQUAL",
+                                value: {
+                                    stringValue: value
+                                }
+                            }
+                        }
+                    }
+                });
+                var field = this.field;
+                var action = this.action;
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState == 4) {
+                        var res = JSON.parse(xhr.responseText);
+                        res.on('data', d => {
+                            var upserts = [];
+                            for (var entRes of d.batch.entityResults) {
+                                upserts.push({
+                                    upsert: {
+                                        key: entRes.entity.key,
+                                        properties: set.values
+                                    }
+                                });
+                            }
+                            var xhr2 = new XMLHttpRequest();
+                            xhr2.open("POST", "https://datastore.googleapis.com/v1/projects/" + action.projectID + ":commit", true);
+                            xhr2.setRequestHeader('Content-Type', 'application/json');
+                            xhr2.setRequestHeader('Authorization', 'Bearer ' + action.db.token);
+                            const body2 = JSON.stringify({
+                                mutations: [
+                                    upserts
+                                ]
+                            });
+                            xhr.onreadystatechange = function () {
+                                if (xhr.readyState == 4) {
+                                    var res2 = JSON.parse(xhr.responseText);
+                                    res2.on('data', d2 => {
+                                        action.db.cache = [];
+                                        action.db.deleteCollection(action.collection);
+                                        resolve(true);
+                                    });
+                                }
+                                else {
+                                    console.log("Datastore commit failed.");
+                                }
+                            };
+                            xhr2.send(body2);
+                        });
+                    }
+                    else {
+                        console.log("Datastore query failed.");
+                    }
+                };
+                xhr.send(body);
+            });
+        }
+    }
+    wasmQuery(value, moduleFunction) {
         if (this.action instanceof Get) {
             return new Promise((resolve, reject) => {
                 chrome.storage.sync.get(this.action.collection, (res) => {
@@ -904,13 +295,17 @@ class FieldCondition {
                         this.action.db.store = res[this.action.collection];
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-                        var aPtr = this.action.db.wasmHas(res[this.action.collection].length, keyPtr, valPtr);
+                        var aPtr = moduleFunction(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
                         this.action.db.__unpin(keyPtr);
                         this.action.db.__unpin(valPtr);
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.collection][i]);
+                            var obj = res[this.action.collection][i];
+                            for (var key in obj) {
+                                obj[key] = JSON.parse(obj[key]);
+                            }
+                            out.push(obj);
                         }
                         resolve(out);
                     }
@@ -921,11 +316,8 @@ class FieldCondition {
             });
         }
         else {
-            return this.action.where((obj) => { return obj[this.field].includes(value); });
+            return this.action.where((obj) => { return obj[this.field] === value; });
         }
-    }
-    length() {
-        return new LengthFieldCondition(this);
     }
 }
 class LengthFieldCondition extends FieldCondition {
@@ -1163,9 +555,10 @@ class ChromeDB {
             });
         });
     }
-    useDatastore(projectID) {
+    useDatastore(projectID, accessToken) {
         this.databaseType = DatabaseType.Datastore;
         this.projectID = projectID;
+        this.token = accessToken;
     }
     useBigtable() {
     }
@@ -4765,6 +4158,187 @@ if (typeof Object.create === 'function') {
 
 /***/ }),
 
+/***/ "./node_modules/querystring/decode.js":
+/*!********************************************!*\
+  !*** ./node_modules/querystring/decode.js ***!
+  \********************************************/
+/***/ ((module) => {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+
+// If obj.hasOwnProperty has been overridden, then calling
+// obj.hasOwnProperty(prop) will break.
+// See: https://github.com/joyent/node/issues/1707
+function hasOwnProperty(obj, prop) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+module.exports = function(qs, sep, eq, options) {
+  sep = sep || '&';
+  eq = eq || '=';
+  var obj = {};
+
+  if (typeof qs !== 'string' || qs.length === 0) {
+    return obj;
+  }
+
+  var regexp = /\+/g;
+  qs = qs.split(sep);
+
+  var maxKeys = 1000;
+  if (options && typeof options.maxKeys === 'number') {
+    maxKeys = options.maxKeys;
+  }
+
+  var len = qs.length;
+  // maxKeys <= 0 means that we should not limit keys count
+  if (maxKeys > 0 && len > maxKeys) {
+    len = maxKeys;
+  }
+
+  for (var i = 0; i < len; ++i) {
+    var x = qs[i].replace(regexp, '%20'),
+        idx = x.indexOf(eq),
+        kstr, vstr, k, v;
+
+    if (idx >= 0) {
+      kstr = x.substr(0, idx);
+      vstr = x.substr(idx + 1);
+    } else {
+      kstr = x;
+      vstr = '';
+    }
+
+    k = decodeURIComponent(kstr);
+    v = decodeURIComponent(vstr);
+
+    if (!hasOwnProperty(obj, k)) {
+      obj[k] = v;
+    } else if (Array.isArray(obj[k])) {
+      obj[k].push(v);
+    } else {
+      obj[k] = [obj[k], v];
+    }
+  }
+
+  return obj;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/querystring/encode.js":
+/*!********************************************!*\
+  !*** ./node_modules/querystring/encode.js ***!
+  \********************************************/
+/***/ ((module) => {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+
+var stringifyPrimitive = function(v) {
+  switch (typeof v) {
+    case 'string':
+      return v;
+
+    case 'boolean':
+      return v ? 'true' : 'false';
+
+    case 'number':
+      return isFinite(v) ? v : '';
+
+    default:
+      return '';
+  }
+};
+
+module.exports = function(obj, sep, eq, name) {
+  sep = sep || '&';
+  eq = eq || '=';
+  if (obj === null) {
+    obj = undefined;
+  }
+
+  if (typeof obj === 'object') {
+    return Object.keys(obj).map(function(k) {
+      var ks = encodeURIComponent(stringifyPrimitive(k)) + eq;
+      if (Array.isArray(obj[k])) {
+        return obj[k].map(function(v) {
+          return ks + encodeURIComponent(stringifyPrimitive(v));
+        }).join(sep);
+      } else {
+        return ks + encodeURIComponent(stringifyPrimitive(obj[k]));
+      }
+    }).join(sep);
+
+  }
+
+  if (!name) return '';
+  return encodeURIComponent(stringifyPrimitive(name)) + eq +
+         encodeURIComponent(stringifyPrimitive(obj));
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/querystring/index.js":
+/*!*******************************************!*\
+  !*** ./node_modules/querystring/index.js ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+
+exports.decode = exports.parse = __webpack_require__(/*! ./decode */ "./node_modules/querystring/decode.js");
+exports.encode = exports.stringify = __webpack_require__(/*! ./encode */ "./node_modules/querystring/encode.js");
+
+
+/***/ }),
+
 /***/ "./node_modules/readable-stream/errors-browser.js":
 /*!********************************************************!*\
   !*** ./node_modules/readable-stream/errors-browser.js ***!
@@ -8306,6 +7880,8 @@ var ClientRequest = module.exports = function (opts) {
 	}
 	self._mode = decideMode(preferBinary, useFetch)
 	self._fetchTimer = null
+	self._socketTimeout = null
+	self._socketTimer = null
 
 	self.on('finish', function () {
 		self._onFinish()
@@ -8347,6 +7923,10 @@ ClientRequest.prototype._onFinish = function () {
 	if (self._destroyed)
 		return
 	var opts = self._opts
+
+	if ('timeout' in opts && opts.timeout !== 0) {
+		self.setTimeout(opts.timeout)
+	}
 
 	var headersObj = self._headers
 	var body = null
@@ -8395,9 +7975,10 @@ ClientRequest.prototype._onFinish = function () {
 			signal: signal
 		}).then(function (response) {
 			self._fetchResponse = response
+			self._resetTimers(false)
 			self._connect()
 		}, function (reason) {
-			__webpack_require__.g.clearTimeout(self._fetchTimer)
+			self._resetTimers(true)
 			if (!self._destroyed)
 				self.emit('error', reason)
 		})
@@ -8453,6 +8034,7 @@ ClientRequest.prototype._onFinish = function () {
 		xhr.onerror = function () {
 			if (self._destroyed)
 				return
+			self._resetTimers(true)
 			self.emit('error', new Error('XHR error'))
 		}
 
@@ -8484,13 +8066,15 @@ function statusValid (xhr) {
 ClientRequest.prototype._onXHRProgress = function () {
 	var self = this
 
+	self._resetTimers(false)
+
 	if (!statusValid(self._xhr) || self._destroyed)
 		return
 
 	if (!self._response)
 		self._connect()
 
-	self._response._onXHRProgress()
+	self._response._onXHRProgress(self._resetTimers.bind(self))
 }
 
 ClientRequest.prototype._connect = function () {
@@ -8499,7 +8083,7 @@ ClientRequest.prototype._connect = function () {
 	if (self._destroyed)
 		return
 
-	self._response = new IncomingMessage(self._xhr, self._fetchResponse, self._mode, self._fetchTimer)
+	self._response = new IncomingMessage(self._xhr, self._fetchResponse, self._mode, self._resetTimers.bind(self))
 	self._response.on('error', function(err) {
 		self.emit('error', err)
 	})
@@ -8514,16 +8098,35 @@ ClientRequest.prototype._write = function (chunk, encoding, cb) {
 	cb()
 }
 
-ClientRequest.prototype.abort = ClientRequest.prototype.destroy = function () {
+ClientRequest.prototype._resetTimers = function (done) {
+	var self = this
+
+	__webpack_require__.g.clearTimeout(self._socketTimer)
+	self._socketTimer = null
+
+	if (done) {
+		__webpack_require__.g.clearTimeout(self._fetchTimer)
+		self._fetchTimer = null
+	} else if (self._socketTimeout) {
+		self._socketTimer = __webpack_require__.g.setTimeout(function () {
+			self.emit('timeout')
+		}, self._socketTimeout)
+	}
+}
+
+ClientRequest.prototype.abort = ClientRequest.prototype.destroy = function (err) {
 	var self = this
 	self._destroyed = true
-	__webpack_require__.g.clearTimeout(self._fetchTimer)
+	self._resetTimers(true)
 	if (self._response)
 		self._response._destroyed = true
 	if (self._xhr)
 		self._xhr.abort()
 	else if (self._fetchAbortController)
 		self._fetchAbortController.abort()
+
+	if (err)
+		self.emit('error', err)
 }
 
 ClientRequest.prototype.end = function (data, encoding, cb) {
@@ -8536,8 +8139,17 @@ ClientRequest.prototype.end = function (data, encoding, cb) {
 	stream.Writable.prototype.end.call(self, data, encoding, cb)
 }
 
+ClientRequest.prototype.setTimeout = function (timeout, cb) {
+	var self = this
+
+	if (cb)
+		self.once('timeout', cb)
+
+	self._socketTimeout = timeout
+	self._resetTimers(false)
+}
+
 ClientRequest.prototype.flushHeaders = function () {}
-ClientRequest.prototype.setTimeout = function () {}
 ClientRequest.prototype.setNoDelay = function () {}
 ClientRequest.prototype.setSocketKeepAlive = function () {}
 
@@ -8586,7 +8198,7 @@ var rStates = exports.readyStates = {
 	DONE: 4
 }
 
-var IncomingMessage = exports.IncomingMessage = function (xhr, response, mode, fetchTimer) {
+var IncomingMessage = exports.IncomingMessage = function (xhr, response, mode, resetTimers) {
 	var self = this
 	stream.Readable.call(self)
 
@@ -8619,6 +8231,7 @@ var IncomingMessage = exports.IncomingMessage = function (xhr, response, mode, f
 		if (capability.writableStream) {
 			var writable = new WritableStream({
 				write: function (chunk) {
+					resetTimers(false)
 					return new Promise(function (resolve, reject) {
 						if (self._destroyed) {
 							reject()
@@ -8630,11 +8243,12 @@ var IncomingMessage = exports.IncomingMessage = function (xhr, response, mode, f
 					})
 				},
 				close: function () {
-					__webpack_require__.g.clearTimeout(fetchTimer)
+					resetTimers(true)
 					if (!self._destroyed)
 						self.push(null)
 				},
 				abort: function (err) {
+					resetTimers(true)
 					if (!self._destroyed)
 						self.emit('error', err)
 				}
@@ -8642,7 +8256,7 @@ var IncomingMessage = exports.IncomingMessage = function (xhr, response, mode, f
 
 			try {
 				response.body.pipeTo(writable).catch(function (err) {
-					__webpack_require__.g.clearTimeout(fetchTimer)
+					resetTimers(true)
 					if (!self._destroyed)
 						self.emit('error', err)
 				})
@@ -8655,15 +8269,15 @@ var IncomingMessage = exports.IncomingMessage = function (xhr, response, mode, f
 			reader.read().then(function (result) {
 				if (self._destroyed)
 					return
+				resetTimers(result.done)
 				if (result.done) {
-					__webpack_require__.g.clearTimeout(fetchTimer)
 					self.push(null)
 					return
 				}
 				self.push(Buffer.from(result.value))
 				read()
 			}).catch(function (err) {
-				__webpack_require__.g.clearTimeout(fetchTimer)
+				resetTimers(true)
 				if (!self._destroyed)
 					self.emit('error', err)
 			})
@@ -8722,7 +8336,7 @@ IncomingMessage.prototype._read = function () {
 	}
 }
 
-IncomingMessage.prototype._onXHRProgress = function () {
+IncomingMessage.prototype._onXHRProgress = function (resetTimers) {
 	var self = this
 
 	var xhr = self._xhr
@@ -8769,6 +8383,7 @@ IncomingMessage.prototype._onXHRProgress = function () {
 				}
 			}
 			reader.onload = function () {
+				resetTimers(true)
 				self.push(null)
 			}
 			// reader.onerror = ??? // TODO: this
@@ -8778,6 +8393,7 @@ IncomingMessage.prototype._onXHRProgress = function () {
 
 	// The ms-stream case handles end separately in reader.onload()
 	if (self._xhr.readyState === rStates.DONE && self._mode !== 'ms-stream') {
+		resetTimers(true)
 		self.push(null)
 	}
 }
@@ -9621,187 +9237,6 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/punycode v1.3.2 by @mathia
 
 /***/ }),
 
-/***/ "./node_modules/url/node_modules/querystring/decode.js":
-/*!*************************************************************!*\
-  !*** ./node_modules/url/node_modules/querystring/decode.js ***!
-  \*************************************************************/
-/***/ ((module) => {
-
-"use strict";
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
-
-// If obj.hasOwnProperty has been overridden, then calling
-// obj.hasOwnProperty(prop) will break.
-// See: https://github.com/joyent/node/issues/1707
-function hasOwnProperty(obj, prop) {
-  return Object.prototype.hasOwnProperty.call(obj, prop);
-}
-
-module.exports = function(qs, sep, eq, options) {
-  sep = sep || '&';
-  eq = eq || '=';
-  var obj = {};
-
-  if (typeof qs !== 'string' || qs.length === 0) {
-    return obj;
-  }
-
-  var regexp = /\+/g;
-  qs = qs.split(sep);
-
-  var maxKeys = 1000;
-  if (options && typeof options.maxKeys === 'number') {
-    maxKeys = options.maxKeys;
-  }
-
-  var len = qs.length;
-  // maxKeys <= 0 means that we should not limit keys count
-  if (maxKeys > 0 && len > maxKeys) {
-    len = maxKeys;
-  }
-
-  for (var i = 0; i < len; ++i) {
-    var x = qs[i].replace(regexp, '%20'),
-        idx = x.indexOf(eq),
-        kstr, vstr, k, v;
-
-    if (idx >= 0) {
-      kstr = x.substr(0, idx);
-      vstr = x.substr(idx + 1);
-    } else {
-      kstr = x;
-      vstr = '';
-    }
-
-    k = decodeURIComponent(kstr);
-    v = decodeURIComponent(vstr);
-
-    if (!hasOwnProperty(obj, k)) {
-      obj[k] = v;
-    } else if (Array.isArray(obj[k])) {
-      obj[k].push(v);
-    } else {
-      obj[k] = [obj[k], v];
-    }
-  }
-
-  return obj;
-};
-
-
-/***/ }),
-
-/***/ "./node_modules/url/node_modules/querystring/encode.js":
-/*!*************************************************************!*\
-  !*** ./node_modules/url/node_modules/querystring/encode.js ***!
-  \*************************************************************/
-/***/ ((module) => {
-
-"use strict";
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
-
-var stringifyPrimitive = function(v) {
-  switch (typeof v) {
-    case 'string':
-      return v;
-
-    case 'boolean':
-      return v ? 'true' : 'false';
-
-    case 'number':
-      return isFinite(v) ? v : '';
-
-    default:
-      return '';
-  }
-};
-
-module.exports = function(obj, sep, eq, name) {
-  sep = sep || '&';
-  eq = eq || '=';
-  if (obj === null) {
-    obj = undefined;
-  }
-
-  if (typeof obj === 'object') {
-    return Object.keys(obj).map(function(k) {
-      var ks = encodeURIComponent(stringifyPrimitive(k)) + eq;
-      if (Array.isArray(obj[k])) {
-        return obj[k].map(function(v) {
-          return ks + encodeURIComponent(stringifyPrimitive(v));
-        }).join(sep);
-      } else {
-        return ks + encodeURIComponent(stringifyPrimitive(obj[k]));
-      }
-    }).join(sep);
-
-  }
-
-  if (!name) return '';
-  return encodeURIComponent(stringifyPrimitive(name)) + eq +
-         encodeURIComponent(stringifyPrimitive(obj));
-};
-
-
-/***/ }),
-
-/***/ "./node_modules/url/node_modules/querystring/index.js":
-/*!************************************************************!*\
-  !*** ./node_modules/url/node_modules/querystring/index.js ***!
-  \************************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-
-exports.decode = exports.parse = __webpack_require__(/*! ./decode */ "./node_modules/url/node_modules/querystring/decode.js");
-exports.encode = exports.stringify = __webpack_require__(/*! ./encode */ "./node_modules/url/node_modules/querystring/encode.js");
-
-
-/***/ }),
-
 /***/ "./node_modules/url/url.js":
 /*!*********************************!*\
   !*** ./node_modules/url/url.js ***!
@@ -9908,7 +9343,7 @@ var protocolPattern = /^([a-z0-9.+-]+:)/i,
       'gopher:': true,
       'file:': true
     },
-    querystring = __webpack_require__(/*! querystring */ "./node_modules/url/node_modules/querystring/index.js");
+    querystring = __webpack_require__(/*! querystring */ "./node_modules/querystring/index.js");
 
 function urlParse(url, parseQueryString, slashesDenoteHost) {
   if (url && util.isObject(url) && url instanceof Url) return url;

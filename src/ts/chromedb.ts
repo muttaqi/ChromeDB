@@ -48,137 +48,7 @@ class FieldCondition {
         }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise<Array<any>>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                            .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "is",
-                                    value: value
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set: Set = this.action;
-                return new Promise<boolean>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                }
-                            };
-
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                })
-                            })
-
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                });
-            }
+            return this.datastoreRequest(value, "EQUAL");
         }
 
         if (this.action.databaseType == DatabaseType.Bigtable) {
@@ -194,78 +64,16 @@ class FieldCondition {
             }
         }
 
-        if (this.action instanceof Get) {
-            return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        
-                        this.action.db.store = res[this.action.collection];
-
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-
-                        var aPtr = this.action.db.wasmIs(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] === value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmIs);
     }
 
     isnt(value: any): Promise<Array<any>> | Promise<boolean> {
 
         if (this.action.databaseType == DatabaseType.Datastore) {
-            throw Error("!= is currently not supported by Datastore")
+            throw Error("Inequality is currently not supported by Datastore")
         }
 
-        if (this.action instanceof Get) {
-            return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-
-                        this.action.db.store = res[this.action.collection];
-
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-
-                        var aPtr = this.action.db.wasmIsnt(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);                    
-                    }
-
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] != value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmIsnt);
     }
 
     greaterThan(value: number): Promise<Array<any>> | Promise<boolean> {
@@ -285,171 +93,10 @@ class FieldCondition {
         }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise<Array<any>>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "GREATER_THAN",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                            .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "greaterThan",
-                                    value: value.toString()
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set: Set = this.action;
-                return new Promise<boolean>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "GREATER_THAN",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                }
-                            };
-
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                })
-                            })
-
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                })
-            }
+            return this.datastoreRequest(value, "GREATER_THAN");
         }
 
-        if (this.action instanceof Get) {
-            return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        
-                        this.action.db.store = res[this.action.collection];
-
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-
-                        var aPtr = this.action.db.wasmGt(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] > value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmGt);
     }
 
     lessThan(value: number): Promise<Array<any>> | Promise<boolean> {
@@ -469,171 +116,10 @@ class FieldCondition {
         }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise<Array<any>>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "LESS_THAN",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                            .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "lessThan",
-                                    value: value.toString()
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set: Set = this.action;
-                return new Promise<boolean>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "LESS_THAN",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                }
-                            };
-
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                })
-                            })
-
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                })
-            }
+            return this.datastoreRequest(value, "LESS_THAN");
         }
 
-        if (this.action instanceof Get) {
-            return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        
-                        this.action.db.store = res[this.action.collection];
-
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-
-                        var aPtr = this.action.db.wasmLt(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] < value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmLt);
     }
 
     greaterThanOrEqualTo(value: number): Promise<Array<any>> | Promise<boolean> {
@@ -653,171 +139,10 @@ class FieldCondition {
         }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise<Array<any>>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "GREATER_THAN_OR_EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                            .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "greaterThanOrEqualTo",
-                                    value: value.toString()
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set: Set = this.action;
-                return new Promise<boolean>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "GREATER_THAN_OR_EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                }
-                            };
-
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                })
-                            })
-
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                })
-            }
+            return this.datastoreRequest(value, "GREATER_THAN_OR_EQUAL");
         }
 
-        if (this.action instanceof Get) {
-            return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        
-                        this.action.db.store = res[this.action.collection];
-
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-
-                        var aPtr = this.action.db.wasmGte(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] >= value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmGte);
     }
 
     lessThanOrEqualTo(value: number): Promise<Array<any>> | Promise<boolean> {
@@ -837,171 +162,10 @@ class FieldCondition {
         }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
-            if (this.action instanceof Get) {
-                return new Promise<Array<any>>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "LESS_THAN_OR_EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var entities = [];
-                            for (var entRes of d.batch.entityResults) {
-                                entities.push(entRes.entity);
-                            }
-                            this.action.db.makeCollection(this.action.collection);
-                            var coll = this.action.db.collection(this.action.collection);
-                            coll.addLocal(entities)
-                            .then(res => {
-                                this.action.db.cache.push({
-                                    collection: this.action.collection,
-                                    action: "Get",
-                                    values: "",
-                                    field: this.field,
-                                    op: "lessThanOrEqualTo",
-                                    value: value.toString()
-                                });
-                                resolve(entities);
-                            });
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                });
-            }
-            else {
-                var set: Set = this.action;
-                return new Promise<boolean>((resolve, reject) => {
-
-                    const opt = {
-                        hostname: 'datastore.googleapis.com',
-                        port: 443,
-                        path: '/v1/projects/' + this.action.projectID + ':runQuery',
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        }
-                    };
-
-                    const body = {
-                        query: {
-                            filter: {
-                                propertyFilter: {
-                                    property: {
-                                        name: this.field
-                                    },
-                                    op: "LESS_THAN_OR_EQUAL",
-                                    value: {
-                                        stringValue: value
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    const req = https.request(opt, res => {
-                        res.on('data', d => {
-                            var upserts = [];
-                            for (var entRes of d.batch.entityResults) {
-                                upserts.push({
-                                    upsert: {
-                                        key: entRes.entity.key,
-                                        properties: set.values
-                                    }
-                                });
-                            }
-                            
-                            const opt2 = {
-                                hostname: 'datastore.googleapis.com',
-                                port: 443,
-                                path: '/v1/projects/' + this.action.projectID + ':commit',
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                }
-                            };
-
-                            const body2 = {
-                                mutations: [
-                                    upserts
-                                ]
-                            };
-
-                            const req2 = https.request(opt2, res2 => {
-                                res2.on('data', d2 => {
-                                    this.action.db.cache = [];
-                                    this.action.db.deleteCollection(this.action.collection);
-                                    resolve(true);
-                                })
-                            })
-
-                            req2.write(body2);
-                            req2.end();
-                        });
-                    });
-
-                    req.write(body);
-                    req.end();
-                })
-            }
+            return this.datastoreRequest(value, "LESS_THAN_OR_EQUAL");
         }
 
-        if (this.action instanceof Get) {
-            return new Promise<Array<any>>((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        
-                        this.action.db.store = res[this.action.collection];
-
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-
-                        var aPtr = this.action.db.wasmLte(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
-
-                        var out = [];
-                        for (var i of a) {
-                            out.push(res[this.action.collection][i]);
-                        }
-                        resolve(out);
-                    }
-
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
-                    }
-                });
-            });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] <= value; });
-        }
+        return this.wasmQuery(value, this.action.db.wasmLte);
     }
 
     isTrue(): Promise<Array<any>> | Promise<boolean> {
@@ -1018,6 +182,151 @@ class FieldCondition {
             throw Error("'IN' is currently not supported by Datastore");
         }
 
+        return this.wasmQuery(value, this.action.db.wasmHas);
+    }
+
+    length(): LengthFieldCondition {
+        return new LengthFieldCondition(this);
+    }
+
+    datastoreRequest(value: any, comparator: String): Promise<Array<any>> | Promise<boolean> {
+        if (this.action instanceof Get) {
+            return new Promise<Array<any>>((resolve, reject) => {
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
+                xhr.setRequestHeader('Content-Type', 'application/json')
+                xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+
+                const body = JSON.stringify({
+                    query: {
+                        filter: {
+                            propertyFilter: {
+                                property: {
+                                    name: this.field
+                                },
+                                op: comparator,
+                                value: {
+                                    stringValue: value
+                                }
+                            }
+                        }
+                    }
+                });
+
+                var field = this.field;
+                var action = this.action;
+                xhr.onreadystatechange = function()  {
+                    if (xhr.readyState == 4) {
+                        var res = JSON.parse(xhr.responseText);
+                        console.log(res);
+                        var d = res.data;
+
+                        var entities = [];
+                        for (var entRes of d.batch.entityResults) {
+                            entities.push(entRes.entity);
+                        }
+                        action.db.makeCollection(action.collection);
+                        var coll = action.db.collection(action.collection);
+                        coll.addLocal(entities)
+                        .then(res => {
+                            action.db.cache.push({
+                                collection: action.collection,
+                                action: "Get",
+                                values: "",
+                                field: field,
+                                op: "is",
+                                value: value
+                            });
+                            resolve(entities);
+                        });
+                    } else {
+                        console.log("Datastore query failed.");
+                    }
+                };
+
+                xhr.send(body);
+            });
+        }
+        else {
+            var set: Set = this.action;
+            return new Promise<boolean>((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
+                xhr.setRequestHeader('Content-Type', 'application/json')
+                xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+
+                const body = JSON.stringify({
+                    query: {
+                        filter: {
+                            propertyFilter: {
+                                property: {
+                                    name: this.field
+                                },
+                                op: "EQUAL",
+                                value: {
+                                    stringValue: value
+                                }
+                            }
+                        }
+                    }
+                });
+
+                var field = this.field;
+                var action = this.action;
+                xhr.onreadystatechange = function()  {
+                    if (xhr.readyState == 4) {
+                        var res = JSON.parse(xhr.responseText);
+
+                        res.on('data', d => {
+                            var upserts = [];
+                            for (var entRes of d.batch.entityResults) {
+                                upserts.push({
+                                    upsert: {
+                                        key: entRes.entity.key,
+                                        properties: set.values
+                                    }
+                                });
+                            }
+                            
+                            var xhr2 = new XMLHttpRequest();
+                            xhr2.open("POST", "https://datastore.googleapis.com/v1/projects/" + action.projectID + ":commit", true);
+                            xhr2.setRequestHeader('Content-Type', 'application/json')
+                            xhr2.setRequestHeader('Authorization', 'Bearer ' + action.db.token);
+
+                            const body2 = JSON.stringify({
+                                mutations: [
+                                    upserts
+                                ]
+                            });
+
+                            xhr.onreadystatechange = function()  {
+                                if (xhr.readyState == 4) {
+                                    var res2 = JSON.parse(xhr.responseText);
+        
+                                    res2.on('data', d2 => {
+                                        action.db.cache = [];
+                                        action.db.deleteCollection(action.collection);
+                                        resolve(true);
+                                    });
+                                } else {
+                                    console.log("Datastore commit failed.");
+                                }
+                            };
+
+                            xhr2.send(body2);
+                        });
+                    } else {
+                        console.log("Datastore query failed.");
+                    }
+                };
+
+                xhr.send(body);
+            });
+        }
+    }
+
+    wasmQuery(value: any, moduleFunction: Function): Promise<Array<any>> | Promise<boolean> {
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
                 chrome.storage.sync.get(this.action.collection, (res) => {
@@ -1028,7 +337,7 @@ class FieldCondition {
                         var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                         var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
-                        var aPtr = this.action.db.wasmHas(res[this.action.collection].length, keyPtr, valPtr);
+                        var aPtr = moduleFunction(res[this.action.collection].length, keyPtr, valPtr);
                         var a = this.action.db.__getArray(aPtr);
 
                         this.action.db.__unpin(keyPtr);
@@ -1036,7 +345,11 @@ class FieldCondition {
 
                         var out = [];
                         for (var i of a) {
-                            out.push(res[this.action.collection][i]);
+                            var obj = res[this.action.collection][i];
+                            for (var key in obj) {
+                                obj[key] = JSON.parse(obj[key]);
+                            }
+                            out.push(obj);
                         }
                         resolve(out);
                     }
@@ -1048,12 +361,8 @@ class FieldCondition {
             });
         }
         else {
-            return this.action.where((obj) => { return obj[this.field].includes(value); });
+            return this.action.where((obj) => { return obj[this.field] === value; });
         }
-    }
-
-    length(): LengthFieldCondition {
-        return new LengthFieldCondition(this);
     }
 }
 
@@ -1336,6 +645,7 @@ export class ChromeDB {
     database: string;
     databaseType: DatabaseType;
     projectID: string;
+    token: string;
     cache: CachedAction[];
 
     wasmIs: Function;
@@ -1379,9 +689,10 @@ export class ChromeDB {
         })
     }
 
-    useDatastore(projectID: string) {
+    useDatastore(projectID: string, accessToken: string) {
         this.databaseType = DatabaseType.Datastore;
         this.projectID = projectID;
+        this.token = accessToken;
     }
     
     useBigtable() {

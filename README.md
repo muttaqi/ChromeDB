@@ -53,7 +53,7 @@ Datastore                 | 32.65 ms
 ChromeDB w/o WebAssembly  | 16.50 ms
 ChromeDB w/ WebAssembly   | 15.56 ms
 
-Note: ChromeDB w/o WebAssembly refers to a primitive version of ChromeDB, and its trial was included only for completeness. Currently, WebAssembly is used for most queries by default.
+Note: ChromeDB w/o WebAssembly refers to a primitive version of ChromeDB, and its trial was included only for completeness. In the latest versions, WebAssembly is used for most queries by default.
 
 # Future plans
 

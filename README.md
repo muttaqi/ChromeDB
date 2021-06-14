@@ -47,11 +47,13 @@ Access tokens should be generated using Google's auth API. See [here](https://de
 GCP was the most viable cloud integration option because of its well-documented, fully supported HTTP REST API that is usable without any additional legwork.
 
 # Benchmarks
-Type (10 requests) | Latency
+Type (10 query requests) | Latency
 ------------------ | -------
 Datastore                 | 32.65 ms
 ChromeDB w/o WebAssembly  | 16.50 ms
 ChromeDB w/ WebAssembly   | 15.56 ms
+
+Note: ChromeDB w/o WebAssembly refers to a primitive version of ChromeDB, and its trial was included only for completeness. Currently, WebAssembly is used for most queries by default.
 
 # Future plans
 

@@ -249,9 +249,7 @@ class FieldCondition {
                             xhr2.setRequestHeader('Content-Type', 'application/json');
                             xhr2.setRequestHeader('Authorization', 'Bearer ' + action.db.token);
                             const body2 = JSON.stringify({
-                                mutations: [
-                                    upserts
-                                ]
+                                mutations: upserts
                             });
                             xhr.onreadystatechange = function () {
                                 if (xhr.readyState == 4) {
@@ -482,6 +480,9 @@ class Collection {
         if (this.db.databaseType == DatabaseType.Local) {
             return this.addLocal(object);
         }
+        else if (this.db.databaseType == DatabaseType.Datastore) {
+            this.datastoreInsert([object]);
+        }
     }
     addLocal(object) {
         return new Promise((resolve, reject) => {
@@ -502,23 +503,59 @@ class Collection {
         });
     }
     addAll(objects) {
-        return new Promise((resolve, reject) => {
-            chrome.storage.sync.get(this.name, (res) => {
-                for (var object of objects) {
-                    for (var key in object) {
-                        object[key] = JSON.stringify(object[key]);
+        if (this.db.databaseType == DatabaseType.Local) {
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.name, (res) => {
+                    for (var object of objects) {
+                        for (var key in object) {
+                            object[key] = JSON.stringify(object[key]);
+                        }
                     }
-                }
-                if (res[this.name] != undefined) {
-                    res[this.name].addAll(objects);
-                    chrome.storage.sync.set({ [this.name]: res }, () => {
-                        resolve(true);
-                    });
+                    if (res[this.name] != undefined) {
+                        res[this.name].addAll(objects);
+                        chrome.storage.sync.set({ [this.name]: res }, () => {
+                            resolve(true);
+                        });
+                    }
+                    else {
+                        reject(`Error finding collection ${this.name}`);
+                    }
+                });
+            });
+        }
+        else if (this.db.databaseType == DatabaseType.Datastore) {
+            this.datastoreInsert(objects);
+        }
+    }
+    datastoreInsert(objects) {
+        return new Promise((resolve, reject) => {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.db.projectID + ":runQuery", true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + this.db.token);
+            var inserts = [];
+            for (var object in objects) {
+                var key = object["key"];
+                delete object["key"];
+                inserts.push({
+                    insert: {
+                        key: key,
+                        properties: object
+                    }
+                });
+            }
+            const body = JSON.stringify({
+                mutations: inserts
+            });
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == 4) {
+                    resolve(true);
                 }
                 else {
-                    reject(`Error finding collection ${this.name}`);
+                    console.log("Datastore query failed.");
                 }
-            });
+            };
+            xhr.send(body);
         });
     }
 }

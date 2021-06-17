@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChromeDB = void 0;
-const https = require('https');
 const loader = require("../../node_modules/assemblyscript/lib/loader/index");
 class Config {
     constructor() {
@@ -194,7 +193,7 @@ class FieldCondition {
                                 action: "Get",
                                 values: "",
                                 field: field,
-                                op: "is",
+                                op: comparator,
                                 value: value
                             });
                             resolve(entities);
@@ -207,7 +206,7 @@ class FieldCondition {
                 xhr.send(body);
             });
         }
-        else {
+        else if (this.action instanceof Set) {
             var set = this.action;
             return new Promise((resolve, reject) => {
                 var xhr = new XMLHttpRequest();
@@ -221,7 +220,7 @@ class FieldCondition {
                                 property: {
                                     name: this.field
                                 },
-                                op: "EQUAL",
+                                op: comparator,
                                 value: {
                                     stringValue: value
                                 }
@@ -229,7 +228,6 @@ class FieldCondition {
                         }
                     }
                 });
-                var field = this.field;
                 var action = this.action;
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState == 4) {
@@ -274,21 +272,83 @@ class FieldCondition {
                 xhr.send(body);
             });
         }
+        else {
+            return new Promise((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+                const body = JSON.stringify({
+                    query: {
+                        filter: {
+                            propertyFilter: {
+                                property: {
+                                    name: this.field
+                                },
+                                op: comparator,
+                                value: {
+                                    stringValue: value
+                                }
+                            }
+                        }
+                    }
+                });
+                var action = this.action;
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState == 4) {
+                        var res = JSON.parse(xhr.responseText);
+                        res.on('data', d => {
+                            var deletes = [];
+                            for (var entRes of d.batch.entityResults) {
+                                deletes.push({
+                                    delete: entRes.entity.key
+                                });
+                            }
+                            var xhr2 = new XMLHttpRequest();
+                            xhr2.open("POST", "https://datastore.googleapis.com/v1/projects/" + action.projectID + ":commit", true);
+                            xhr2.setRequestHeader('Content-Type', 'application/json');
+                            xhr2.setRequestHeader('Authorization', 'Bearer ' + action.db.token);
+                            const body2 = JSON.stringify({
+                                mutations: deletes
+                            });
+                            xhr.onreadystatechange = function () {
+                                if (xhr.readyState == 4) {
+                                    var res2 = JSON.parse(xhr.responseText);
+                                    res2.on('data', d2 => {
+                                        action.db.cache = [];
+                                        action.db.deleteCollection(action.collection);
+                                        resolve(true);
+                                    });
+                                }
+                                else {
+                                    console.log("Datastore commit failed.");
+                                }
+                            };
+                            xhr2.send(body2);
+                        });
+                    }
+                    else {
+                        console.log("Datastore query failed.");
+                    }
+                };
+                xhr.send(body);
+            });
+        }
     }
     wasmQuery(value, moduleFunction) {
-        if (this.action instanceof Get) {
-            return new Promise((resolve, reject) => {
-                chrome.storage.sync.get(this.action.collection, (res) => {
-                    if (res[this.action.collection] != undefined) {
-                        this.action.db.store = res[this.action.collection];
-                        var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
-                        var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
-                        var aPtr = moduleFunction(res[this.action.collection].length, keyPtr, valPtr);
-                        var a = this.action.db.__getArray(aPtr);
-                        this.action.db.__unpin(keyPtr);
-                        this.action.db.__unpin(valPtr);
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.get(this.action.collection, (res) => {
+                if (res[this.action.collection] != undefined) {
+                    this.action.db.store = res[this.action.collection];
+                    var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
+                    var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                    var aPtr = moduleFunction(res[this.action.collection].length, keyPtr, valPtr);
+                    var a = this.action.db.__getArray(aPtr);
+                    this.action.db.__unpin(keyPtr);
+                    this.action.db.__unpin(valPtr);
+                    if (this.action instanceof Get) {
                         var out = [];
-                        for (var i of a) {
+                        for (let i of a) {
                             var obj = res[this.action.collection][i];
                             for (var key in obj) {
                                 obj[key] = JSON.parse(obj[key]);
@@ -297,15 +357,41 @@ class FieldCondition {
                         }
                         resolve(out);
                     }
-                    else {
-                        reject(`Error finding collection ${this.action.collection}`);
+                    else if (this.action instanceof Set) {
+                        for (let i of a) {
+                            var object = res[this.action.collection][i];
+                            for (var key in object) {
+                                object[key] = JSON.parse(object[key]);
+                            }
+                            this.action.values.forEach((val, key) => {
+                                res[this.action.collection][i][key] = JSON.stringify(val);
+                            });
+                        }
+                        chrome.storage.sync.set({ [this.action.collection]: res[this.action.collection] }, () => {
+                            resolve(true);
+                        });
                     }
-                });
+                    else {
+                        var indices = new Map();
+                        for (let i of a) {
+                            indices.set(i, true);
+                        }
+                        var out = [];
+                        for (let i = 0; i < res[this.action.collection].length; i++) {
+                            if (indices.has(i)) {
+                                out.push(res[this.action.collection][i]);
+                            }
+                        }
+                        chrome.storage.sync.set({ [this.action.collection]: out }, () => {
+                            resolve(true);
+                        });
+                    }
+                }
+                else {
+                    reject(`Error finding collection ${this.action.collection}`);
+                }
             });
-        }
-        else {
-            return this.action.where((obj) => { return obj[this.field] === value; });
-        }
+        });
     }
 }
 class LengthFieldCondition extends FieldCondition {
@@ -433,7 +519,7 @@ class Set {
                                 });
                             }
                         }
-                        chrome.storage.sync.set({ [this.collection]: res }, () => {
+                        chrome.storage.sync.set({ [this.collection]: res[this.collection] }, () => {
                             resolve(true);
                         });
                     }
@@ -461,6 +547,58 @@ class Set {
                 else {
                     reject(`Error finding collection ${this.collection}`);
                 }
+            });
+        });
+    }
+}
+class Delete {
+    constructor(db, collection, values, databaseType, projectID) {
+        this.db = db;
+        this.collection = collection;
+        this.values = values;
+        this.databaseType = databaseType;
+        if (projectID) {
+            this.projectID = projectID;
+        }
+    }
+    where(conditionOrField) {
+        if (typeof conditionOrField === "string") {
+            return new FieldCondition(conditionOrField, this);
+        }
+        else {
+            if (this.databaseType != DatabaseType.Local) {
+                throw Error("Can't use javascript function for a cloud database");
+            }
+            return new Promise((resolve, reject) => {
+                chrome.storage.sync.get(this.collection, (res) => {
+                    if (res[this.collection] != undefined) {
+                        var newCollection = [];
+                        for (var i = 0; i < res[this.collection].length; i++) {
+                            var object = res[this.collection][i];
+                            var testObject = {};
+                            for (var key in object) {
+                                testObject[key] = JSON.parse(object[key]);
+                            }
+                            if (!conditionOrField(testObject)) {
+                                newCollection.push(object);
+                            }
+                        }
+                        chrome.storage.sync.set({ [this.collection]: newCollection }, () => {
+                            resolve(true);
+                        });
+                    }
+                    else {
+                        reject(`Error finding collection ${this.collection}`);
+                    }
+                });
+            });
+        }
+    }
+    //TODO: WASM
+    all() {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.set({ [this.collection]: [] }, () => {
+                resolve(true);
             });
         });
     }

@@ -30,21 +30,23 @@ Use Webpack with a 'web' target to build your app. See the repository webpack.co
 npx webpack && cp ./chromedb/src/ts/query.wasm dist && cp manifest.json ./dist
 ```
 
-In other words, Webpack your javascript, copy the query.wasm to the dist folder (or wherever your Webpack output is), and copy the manifest.json to the same folder
+In other words, Webpack your javascript, copy the query.wasm to the dist folder (or wherever your Webpack output is), and copy the manifest.json to the same folder.
 
 # Using GCP Datastore
 
-ChromeDB is compatible with any RESTful database API. GCP in particular offers out-of-the-box HTTP APIs for Datastore and BigTable. An experimental backend for GCP Datastore has been implemented, and can be used by calling the following function in your ChromeDB client before retrieving a collection:
+ChromeDB is compatible with any RESTful database API. An experimental backend for GCP's Datastore and Firestore have been implemented, and can be used by calling the following before retrieving a collection:
 
 ```javascript
 client.useDatastore(projectID, accessToken);
 ```
 
-Access tokens should be generated using Google's auth API. See [here](https://developers.google.com/identity/protocols/oauth2/web-server#httprest) for more details.
+```javascript
+client.useFirestore(projectID, databaseID, accessToken);
+```
 
-# Why GCP?
+Datastore resources are [entities](https://cloud.google.com/datastore/docs/reference/data/rest/v1/Entity), and Firestore resources are [documents](https://cloud.google.com/firestore/docs/reference/rest/v1beta1/projects.databases.documents#Document). Access tokens should be generated using Google's auth API. See [here](https://developers.google.com/identity/protocols/oauth2/web-server#httprest) for more details. 
 
-GCP was the most viable cloud integration option because of its well-documented, fully supported HTTP REST API that is usable without any additional legwork.
+GCP was the most viable cloud integration option because of its well-documented, fully supported HTTP REST API that can be used with minimal setup.
 
 # Benchmarks
 Type (10 query requests) | Latency

@@ -24,7 +24,7 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js'],
     fallback: {
       "http": require.resolve("stream-http"),
-      "https": require.resolve("https-browserify"),
+      "https": require.resolve("https-browserify")
     }
   },
 

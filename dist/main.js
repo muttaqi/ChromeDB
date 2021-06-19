@@ -21,7 +21,7 @@ var DatabaseType;
 (function (DatabaseType) {
     DatabaseType[DatabaseType["Local"] = 0] = "Local";
     DatabaseType[DatabaseType["Datastore"] = 1] = "Datastore";
-    DatabaseType[DatabaseType["Bigtable"] = 2] = "Bigtable";
+    DatabaseType[DatabaseType["Firestore"] = 2] = "Firestore";
 })(DatabaseType || (DatabaseType = {}));
 //TODO: WASM all
 class FieldCondition {
@@ -47,22 +47,17 @@ class FieldCondition {
         if (this.action.databaseType == DatabaseType.Datastore) {
             return this.datastoreRequest(value, "EQUAL");
         }
-        if (this.action.databaseType == DatabaseType.Bigtable) {
-            if (this.action instanceof Get) {
-                return new Promise((resolve, reject) => {
-                });
-            }
-            else {
-                var set = this.action;
-                return new Promise((resolve, reject) => {
-                });
-            }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            return this.firestoreRequest(value, "EQUAL");
         }
         return this.wasmQuery(value, this.action.db.wasmIs);
     }
     isnt(value) {
         if (this.action.databaseType == DatabaseType.Datastore) {
             throw Error("Inequality is currently not supported by Datastore");
+        }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            throw Error("Inequality is currently not supported by Firestore");
         }
         return this.wasmQuery(value, this.action.db.wasmIsnt);
     }
@@ -84,6 +79,9 @@ class FieldCondition {
         if (this.action.databaseType == DatabaseType.Datastore) {
             return this.datastoreRequest(value, "GREATER_THAN");
         }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            return this.firestoreRequest(value, "GREATER_THAN");
+        }
         return this.wasmQuery(value, this.action.db.wasmGt);
     }
     lessThan(value) {
@@ -103,6 +101,9 @@ class FieldCondition {
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
             return this.datastoreRequest(value, "LESS_THAN");
+        }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            return this.firestoreRequest(value, "LESS_THAN");
         }
         return this.wasmQuery(value, this.action.db.wasmLt);
     }
@@ -124,6 +125,9 @@ class FieldCondition {
         if (this.action.databaseType == DatabaseType.Datastore) {
             return this.datastoreRequest(value, "GREATER_THAN_OR_EQUAL");
         }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            return this.firestoreRequest(value, "GREATER_THAN_OR_EQUAL");
+        }
         return this.wasmQuery(value, this.action.db.wasmGte);
     }
     lessThanOrEqualTo(value) {
@@ -144,17 +148,35 @@ class FieldCondition {
         if (this.action.databaseType == DatabaseType.Datastore) {
             return this.datastoreRequest(value, "LESS_THAN_OR_EQUAL");
         }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            return this.firestoreRequest(value, "LESS_THAN_OR_EQUAL");
+        }
         return this.wasmQuery(value, this.action.db.wasmLte);
     }
     isTrue() {
+        if (this.action.databaseType == DatabaseType.Datastore) {
+            this.datastoreRequest("true", "EQUAL");
+        }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            this.firestoreRequest("true", "EQUAL");
+        }
         return this.action.where((obj) => { return obj[this.field]; });
     }
     isFalse() {
+        if (this.action.databaseType == DatabaseType.Datastore) {
+            this.datastoreRequest("false", "EQUAL");
+        }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            this.firestoreRequest("false", "EQUAL");
+        }
         return this.action.where((obj) => { return obj[this.field]; });
     }
     has(value) {
         if (this.action.databaseType == DatabaseType.Datastore) {
-            throw Error("'IN' is currently not supported by Datastore");
+            throw Error("Array membership is currently not supported by Datastore");
+        }
+        if (this.action.databaseType == DatabaseType.Firestore) {
+            throw Error("Array membership is currently not supported by Firestore");
         }
         return this.wasmQuery(value, this.action.db.wasmHas);
     }
@@ -345,6 +367,189 @@ class FieldCondition {
             });
         }
     }
+    firestoreRequest(value, comparator) {
+        if (this.action instanceof Get) {
+            return new Promise((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://firestore.googleapis.com/v1beta1/projects" + this.action.projectID + "/databases/" + this.action.databaseID + ":runQuery", true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+                const body = JSON.stringify({
+                    structuredQuery: {
+                        select: {
+                            fields: []
+                        },
+                        where: {
+                            fieldFilter: {
+                                field: {
+                                    fieldPath: this.field
+                                },
+                                op: comparator,
+                                value: {
+                                    stringValue: value
+                                }
+                            }
+                        },
+                    }
+                });
+                var field = this.field;
+                var action = this.action;
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState == 4) {
+                        var res = JSON.parse(xhr.responseText);
+                        var d = res.data;
+                        var documents = [d.document];
+                        action.db.makeCollection(action.collection);
+                        var coll = action.db.collection(action.collection);
+                        coll.addLocal(documents)
+                            .then(res => {
+                            action.db.cache.push({
+                                collection: action.collection,
+                                action: "Get",
+                                values: "",
+                                field: field,
+                                op: comparator,
+                                value: value
+                            });
+                            resolve(documents);
+                        });
+                    }
+                    else {
+                        console.log("Firestore query failed.");
+                    }
+                };
+                xhr.send(body);
+            });
+        }
+        else if (this.action instanceof Set) {
+            var set = this.action;
+            return new Promise((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://firestore.googleapis.com/v1beta1/" + this.action.projectID + "/" + this.action.databaseID + ":runQuery", true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+                const body = JSON.stringify({
+                    structuredQuery: {
+                        select: {
+                            fields: []
+                        },
+                        where: {
+                            fieldFilter: {
+                                field: {
+                                    fieldPath: this.field
+                                },
+                                op: comparator,
+                                value: {
+                                    stringValue: value
+                                }
+                            }
+                        },
+                    }
+                });
+                var action = this.action;
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState == 4) {
+                        var res = JSON.parse(xhr.responseText);
+                        var d = res.data;
+                        var document = d.document;
+                        for (var field in document.fields) {
+                            if (set.values.has(field)) {
+                                for (var valueType in document.fields[field]) {
+                                    document.fields[field][valueType] = set.values.get(field);
+                                }
+                            }
+                        }
+                        var xhr2 = new XMLHttpRequest();
+                        xhr2.open("POST", "https://firestore.googleapis.com/v1beta1/projects/" + action.projectID + "/databases/" + action.databaseID + ":commit", true);
+                        xhr2.setRequestHeader('Content-Type', 'application/json');
+                        xhr2.setRequestHeader('Authorization', 'Bearer ' + action.db.token);
+                        const body2 = JSON.stringify({
+                            writes: [
+                                {
+                                    update: document
+                                }
+                            ]
+                        });
+                        xhr.onreadystatechange = function () {
+                            if (xhr.readyState == 4) {
+                                action.db.cache = [];
+                                action.db.deleteCollection(action.collection);
+                                resolve(true);
+                            }
+                            else {
+                                console.log("Firestore commit failed.");
+                            }
+                        };
+                        xhr2.send(body2);
+                    }
+                    else {
+                        console.log("Firestore query failed.");
+                    }
+                };
+                xhr.send(body);
+            });
+        }
+        else {
+            return new Promise((resolve, reject) => {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "https://firestore.googleapis.com/v1beta1/" + this.action.projectID + "/" + this.action.databaseID + ":runQuery", true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+                const body = JSON.stringify({
+                    structuredQuery: {
+                        select: {
+                            fields: []
+                        },
+                        where: {
+                            fieldFilter: {
+                                field: {
+                                    fieldPath: this.field
+                                },
+                                op: comparator,
+                                value: {
+                                    stringValue: value
+                                }
+                            }
+                        },
+                    }
+                });
+                var action = this.action;
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState == 4) {
+                        var res = JSON.parse(xhr.responseText);
+                        var d = res.data;
+                        var document = d.document;
+                        var xhr2 = new XMLHttpRequest();
+                        xhr2.open("POST", "https://firestore.googleapis.com/v1beta1/projects/" + action.projectID + "/databases/" + action.databaseID + ":commit", true);
+                        xhr2.setRequestHeader('Content-Type', 'application/json');
+                        xhr2.setRequestHeader('Authorization', 'Bearer ' + action.db.token);
+                        const body2 = JSON.stringify({
+                            writes: [
+                                {
+                                    delete: document.name
+                                }
+                            ]
+                        });
+                        xhr.onreadystatechange = function () {
+                            if (xhr.readyState == 4) {
+                                action.db.cache = [];
+                                action.db.deleteCollection(action.collection);
+                                resolve(true);
+                            }
+                            else {
+                                console.log("Firestore commit failed.");
+                            }
+                        };
+                        xhr2.send(body2);
+                    }
+                    else {
+                        console.log("Firestore query failed.");
+                    }
+                };
+                xhr.send(body);
+            });
+        }
+    }
     wasmQuery(value, moduleFunction) {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get(this.action.collection, (res) => {
@@ -426,26 +631,17 @@ class LengthFieldCondition extends FieldCondition {
     lessThanOrEqualTo(value) {
         return this.action.where((obj) => { return obj[this.field].length <= value; });
     }
-    isTrue() {
-        throw Error("You can't evaluate length as a boolean");
-    }
-    isFalse() {
-        throw Error("You can't evaluate length as a boolean");
-    }
-    has(value) {
-        throw Error("You can't evaluate length as an array");
-    }
-    length() {
-        throw Error("You can't take the length of a length");
-    }
 }
 class Get {
-    constructor(db, collection, databaseType, projectID) {
+    constructor(db, collection, databaseType, projectID, databaseID) {
         this.db = db;
         this.collection = collection;
         this.databaseType = databaseType;
         if (projectID) {
             this.projectID = projectID;
+        }
+        if (databaseID) {
+            this.databaseID = databaseID;
         }
     }
     where(conditionOrField) {
@@ -498,13 +694,16 @@ class Get {
     }
 }
 class Set {
-    constructor(db, collection, values, databaseType, projectID) {
+    constructor(db, collection, values, databaseType, projectID, databaseID) {
         this.db = db;
         this.collection = collection;
         this.values = values;
         this.databaseType = databaseType;
         if (projectID) {
             this.projectID = projectID;
+        }
+        if (databaseID) {
+            this.databaseID = databaseID;
         }
     }
     where(conditionOrField) {
@@ -562,13 +761,15 @@ class Set {
     }
 }
 class Delete {
-    constructor(db, collection, values, databaseType, projectID) {
+    constructor(db, collection, databaseType, projectID, databaseID) {
         this.db = db;
         this.collection = collection;
-        this.values = values;
         this.databaseType = databaseType;
         if (projectID) {
             this.projectID = projectID;
+        }
+        if (databaseID) {
+            this.databaseID = databaseID;
         }
     }
     where(conditionOrField) {
@@ -619,10 +820,37 @@ class Collection {
         this.name = name;
     }
     get() {
-        return new Get(this.db, this.name, this.db.databaseType);
+        if (this.db.databaseType == DatabaseType.Local) {
+            return new Get(this.db, this.name, this.db.databaseType);
+        }
+        else if (this.db.databaseType == DatabaseType.Datastore) {
+            return new Get(this.db, this.name, this.db.databaseType, this.db.projectID);
+        }
+        else {
+            return new Get(this.db, this.name, this.db.databaseType, this.db.projectID, this.db.databaseID);
+        }
     }
     set(values) {
-        return new Set(this.db, this.name, values, this.db.databaseType);
+        if (this.db.databaseType == DatabaseType.Local) {
+            return new Set(this.db, this.name, values, this.db.databaseType);
+        }
+        else if (this.db.databaseType == DatabaseType.Datastore) {
+            return new Set(this.db, this.name, values, this.db.databaseType, this.db.projectID);
+        }
+        else {
+            return new Set(this.db, this.name, values, this.db.databaseType, this.db.projectID, this.db.databaseID);
+        }
+    }
+    delete() {
+        if (this.db.databaseType == DatabaseType.Local) {
+            return new Delete(this.db, this.name, this.db.databaseType);
+        }
+        else if (this.db.databaseType == DatabaseType.Datastore) {
+            return new Delete(this.db, this.name, this.db.databaseType, this.db.projectID);
+        }
+        else {
+            return new Delete(this.db, this.name, this.db.databaseType, this.db.projectID, this.db.databaseID);
+        }
     }
     add(object) {
         if (this.db.databaseType == DatabaseType.Local) {
@@ -735,7 +963,11 @@ class ChromeDB {
         this.projectID = projectID;
         this.token = accessToken;
     }
-    useBigtable() {
+    useFirestore(projectID, databaseID, accessToken) {
+        this.databaseType = DatabaseType.Firestore;
+        this.projectID = projectID;
+        this.databaseID = databaseID;
+        this.token = accessToken;
     }
     initWASM() {
         const imports = {

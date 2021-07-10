@@ -13,27 +13,31 @@ var DatabaseType;
     DatabaseType[DatabaseType["Datastore"] = 1] = "Datastore";
     DatabaseType[DatabaseType["Firestore"] = 2] = "Firestore";
 })(DatabaseType || (DatabaseType = {}));
-//TODO: WASM all
+// field condition will perform an operation when the field is specified
 class FieldCondition {
     constructor(field, action) {
         this.field = field;
         this.action = action;
     }
     is(value) {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "is",
-            value: value
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            // check cache for operation, and force query to be local if found
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "is",
+                value: value
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
+        // perform operation based on database type
         if (this.action.databaseType == DatabaseType.Datastore) {
             return this.datastoreRequest(value, "EQUAL");
         }
@@ -42,6 +46,7 @@ class FieldCondition {
         }
         return this.wasmQuery(value, this.action.db.wasmIs);
     }
+    // repeat for other field conditions
     isnt(value) {
         if (this.action.databaseType == DatabaseType.Datastore) {
             throw Error("Inequality is currently not supported by Datastore");
@@ -52,18 +57,20 @@ class FieldCondition {
         return this.wasmQuery(value, this.action.db.wasmIsnt);
     }
     greaterThan(value) {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "greaterThan",
-            value: value.toString()
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "greaterThan",
+                value: value.toString()
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
@@ -75,18 +82,20 @@ class FieldCondition {
         return this.wasmQuery(value, this.action.db.wasmGt);
     }
     lessThan(value) {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "lessThan",
-            value: value.toString()
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "lessThan",
+                value: value.toString()
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
@@ -98,18 +107,20 @@ class FieldCondition {
         return this.wasmQuery(value, this.action.db.wasmLt);
     }
     greaterThanOrEqualTo(value) {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "greaterThanOrEqualTo",
-            value: value.toString()
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "greaterThanOrEqualTo",
+                value: value.toString()
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
@@ -121,18 +132,20 @@ class FieldCondition {
         return this.wasmQuery(value, this.action.db.wasmGte);
     }
     lessThanOrEqualTo(value) {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "lessThanOrEqualTo",
-            value: value.toString()
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "lessThanOrEqualTo",
+                value: value.toString()
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
         if (this.action.databaseType == DatabaseType.Datastore) {
@@ -144,6 +157,22 @@ class FieldCondition {
         return this.wasmQuery(value, this.action.db.wasmLte);
     }
     isTrue() {
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "isTrue",
+                value: "true"
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
+            }
+        }
         if (this.action.databaseType == DatabaseType.Datastore) {
             this.datastoreRequest("true", "EQUAL");
         }
@@ -153,6 +182,22 @@ class FieldCondition {
         return this.action.where((obj) => { return obj[this.field]; });
     }
     isFalse() {
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "isFalse",
+                value: "false"
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
+            }
+        }
         if (this.action.databaseType == DatabaseType.Datastore) {
             this.datastoreRequest("false", "EQUAL");
         }
@@ -175,11 +220,14 @@ class FieldCondition {
     }
     datastoreRequest(value, comparator) {
         if (this.action instanceof Get) {
+            // query based on filter
             return new Promise((resolve, reject) => {
+                // request setup
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+                // datastore filter body
                 const body = JSON.stringify({
                     query: {
                         filter: {
@@ -197,17 +245,21 @@ class FieldCondition {
                 });
                 var field = this.field;
                 var action = this.action;
+                // wait for query
                 xhr.onreadystatechange = function () {
+                    // if query ok
                     if (xhr.readyState == 4) {
+                        // parse the result
                         var res = JSON.parse(xhr.responseText);
-                        console.log(res);
                         var d = res.data;
+                        // add entities to local storage
                         var entities = [];
                         for (var entRes of d.batch.entityResults) {
                             entities.push(entRes.entity);
                         }
                         action.db.makeCollection(action.collection);
                         var coll = action.db.collection(action.collection);
+                        // update cache reference
                         coll.addLocal(entities)
                             .then(res => {
                             action.db.cache.push({
@@ -230,6 +282,7 @@ class FieldCondition {
         }
         else if (this.action instanceof Set) {
             var set = this.action;
+            // query based on filters similar to Get
             return new Promise((resolve, reject) => {
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
@@ -264,6 +317,7 @@ class FieldCondition {
                                     }
                                 });
                             }
+                            // second request to mutate entities
                             var xhr2 = new XMLHttpRequest();
                             xhr2.open("POST", "https://datastore.googleapis.com/v1/projects/" + action.projectID + ":commit", true);
                             xhr2.setRequestHeader('Content-Type', 'application/json');
@@ -274,6 +328,7 @@ class FieldCondition {
                             xhr.onreadystatechange = function () {
                                 if (xhr.readyState == 4) {
                                     var res2 = JSON.parse(xhr.responseText);
+                                    // clear cache
                                     res2.on('data', d2 => {
                                         action.db.cache = [];
                                         action.db.deleteCollection(action.collection);
@@ -326,6 +381,7 @@ class FieldCondition {
                                     delete: entRes.entity.key
                                 });
                             }
+                            // perform delete mutation
                             var xhr2 = new XMLHttpRequest();
                             xhr2.open("POST", "https://datastore.googleapis.com/v1/projects/" + action.projectID + ":commit", true);
                             xhr2.setRequestHeader('Content-Type', 'application/json');
@@ -336,6 +392,7 @@ class FieldCondition {
                             xhr.onreadystatechange = function () {
                                 if (xhr.readyState == 4) {
                                     var res2 = JSON.parse(xhr.responseText);
+                                    // update cache
                                     res2.on('data', d2 => {
                                         action.db.cache = [];
                                         action.db.deleteCollection(action.collection);
@@ -357,6 +414,7 @@ class FieldCondition {
             });
         }
     }
+    // similar structure to datastore requests
     firestoreRequest(value, comparator) {
         if (this.action instanceof Get) {
             return new Promise((resolve, reject) => {
@@ -364,6 +422,7 @@ class FieldCondition {
                 xhr.open("POST", "https://firestore.googleapis.com/v1beta1/projects" + this.action.projectID + "/databases/" + this.action.databaseID + ":runQuery", true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
+                // firestore filter body
                 const body = JSON.stringify({
                     structuredQuery: {
                         select: {
@@ -388,6 +447,7 @@ class FieldCondition {
                     if (xhr.readyState == 4) {
                         var res = JSON.parse(xhr.responseText);
                         var d = res.data;
+                        // update local storage and cache with retrieved documents
                         var documents = [d.document];
                         action.db.makeCollection(action.collection);
                         var coll = action.db.collection(action.collection);
@@ -542,15 +602,21 @@ class FieldCondition {
     }
     wasmQuery(value, moduleFunction) {
         return new Promise((resolve, reject) => {
+            // get collection from local storage
             chrome.storage.sync.get(this.action.collection, (res) => {
                 if (res[this.action.collection] != undefined) {
+                    // filter using wasm module
                     this.action.db.store = res[this.action.collection];
+                    // references to filter key and value
                     var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                     var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
+                    // perform wasm function and get reference to return array
                     var aPtr = moduleFunction(res[this.action.collection].length, keyPtr, valPtr);
                     var a = this.action.db.__getArray(aPtr);
+                    // free the references
                     this.action.db.__unpin(keyPtr);
                     this.action.db.__unpin(valPtr);
+                    // return the objects if a Get
                     if (this.action instanceof Get) {
                         var out = [];
                         for (let i of a) {
@@ -561,6 +627,7 @@ class FieldCondition {
                             out.push(obj);
                         }
                         resolve(out);
+                        // else mutate
                     }
                     else if (this.action instanceof Set) {
                         for (let i of a) {
@@ -599,6 +666,7 @@ class FieldCondition {
         });
     }
 }
+// evaluates a local query for the length of an array field
 class LengthFieldCondition extends FieldCondition {
     constructor(fc) {
         super(fc.field, fc.action);
@@ -622,6 +690,7 @@ class LengthFieldCondition extends FieldCondition {
         return this.action.where((obj) => { return obj[this.field].length <= value; });
     }
 }
+// class to handle queries on a collection
 class Get {
     constructor(db, collection, databaseType, projectID, databaseID) {
         this.db = db;
@@ -635,9 +704,11 @@ class Get {
         }
     }
     where(conditionOrField) {
+        // for a field generate a new field condition
         if (typeof conditionOrField === "string") {
             return new FieldCondition(conditionOrField, this);
         }
+        // else perform the query using the javascript function
         else {
             if (this.databaseType != DatabaseType.Local) {
                 throw Error("Can't use javascript condition for a cloud database");
@@ -663,6 +734,7 @@ class Get {
             });
         }
     }
+    // return full collection
     all() {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get(this.collection, (res) => {
@@ -683,6 +755,7 @@ class Get {
         });
     }
 }
+// similar to Get, for mutation
 class Set {
     constructor(db, collection, values, databaseType, projectID, databaseID) {
         this.db = db;
@@ -729,7 +802,6 @@ class Set {
             });
         }
     }
-    //TODO: WASM
     all() {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get(this.collection, (res) => {
@@ -750,6 +822,7 @@ class Set {
         });
     }
 }
+// similar to Get, for deletion
 class Delete {
     constructor(db, collection, databaseType, projectID, databaseID) {
         this.db = db;
@@ -804,6 +877,7 @@ class Delete {
         });
     }
 }
+// class through which queries or mutations can be made
 class Collection {
     constructor(db, name) {
         this.db = db;
@@ -850,6 +924,7 @@ class Collection {
             this.datastoreInsert([object]);
         }
     }
+    // force insertion to be local only
     addLocal(object) {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get(this.name, (res) => {
@@ -868,6 +943,7 @@ class Collection {
             });
         });
     }
+    // add multiple objects
     addAll(objects) {
         if (this.db.databaseType == DatabaseType.Local) {
             return new Promise((resolve, reject) => {
@@ -900,6 +976,7 @@ class Collection {
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.setRequestHeader('Authorization', 'Bearer ' + this.db.token);
             var inserts = [];
+            // insertion mutation body
             for (var object in objects) {
                 var key = object["key"];
                 delete object["key"];
@@ -933,6 +1010,7 @@ class ChromeDB {
         db.cache = [];
         db.initWASM();
         return new Promise((resolve, reject) => {
+            // get list of available collections for the specified database, else initialize as empty database
             chrome.storage.sync.get('chromedb_config', (res) => {
                 db.config = new Config();
                 if (res.chromedb_config != undefined) {
@@ -960,10 +1038,10 @@ class ChromeDB {
         this.token = accessToken;
     }
     initWASM() {
+        // specify wasm imports
         const imports = {
             query: {
                 log: (msgPtr) => {
-                    // at the time of call, wasmExample will be initialized
                     console.log('WASM is talking', this.__getString(msgPtr));
                 },
                 access: (i, keyPtr) => {
@@ -981,11 +1059,13 @@ class ChromeDB {
                     this.__unpin(this.ptrStore);
                 }
             },
+            // memory specs
             env: {
                 memory: new WebAssembly.Memory({ initial: 1024 }),
                 table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' })
             }
         };
+        // fetch wasm file and obtain all available module functions
         loader.instantiate(fetch("query.wasm"), imports)
             .then((module) => {
             this.wasmIs = module.exports.is;
@@ -1003,12 +1083,14 @@ class ChromeDB {
             this.__unpin = module.exports.__unpin;
         });
     }
+    // return a collection if it exists
     collection(name) {
         if (this.config.collections[this.database].includes(name)) {
             return new Collection(this, name);
         }
         throw Error(`Collection ${name} doesn't belong to database ${this.database}`);
     }
+    // add a new collection to the config
     makeCollection(name) {
         if (this.config.collections[this.database].includes(name)) {
             return new Promise((resolve, reject) => {
@@ -1022,6 +1104,7 @@ class ChromeDB {
             });
         });
     }
+    // delete a collection from the config
     deleteCollection(name) {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.remove(name, () => {

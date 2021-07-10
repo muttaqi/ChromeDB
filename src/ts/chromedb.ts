@@ -19,7 +19,7 @@ interface CachedAction {
     value: string;
 }
 
-//TODO: WASM all
+// field condition will perform an operation when the field is specified
 class FieldCondition {
     field: string;
     action: Get | Set | Delete;
@@ -30,21 +30,25 @@ class FieldCondition {
     }
 
     is(value: any): Promise<Array<any> | boolean> {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "is",
-            value: value
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            // check cache for operation, and force query to be local if found
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "is",
+                value: value
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
 
+        // perform operation based on database type
         if (this.action.databaseType == DatabaseType.Datastore) {
             return this.datastoreRequest(value, "EQUAL");
         }
@@ -56,6 +60,7 @@ class FieldCondition {
         return this.wasmQuery(value, this.action.db.wasmIs);
     }
 
+    // repeat for other field conditions
     isnt(value: any): Promise<Array<any> | boolean> {
 
         if (this.action.databaseType == DatabaseType.Datastore) {
@@ -70,18 +75,20 @@ class FieldCondition {
     }
 
     greaterThan(value: number): Promise<Array<any> | boolean> {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "greaterThan",
-            value: value.toString()
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "greaterThan",
+                value: value.toString()
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
 
@@ -97,18 +104,20 @@ class FieldCondition {
     }
 
     lessThan(value: number): Promise<Array<any> | boolean> {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "lessThan",
-            value: value.toString()
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "lessThan",
+                value: value.toString()
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
 
@@ -124,18 +133,20 @@ class FieldCondition {
     }
 
     greaterThanOrEqualTo(value: number): Promise<Array<any> | boolean> {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "greaterThanOrEqualTo",
-            value: value.toString()
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "greaterThanOrEqualTo",
+                value: value.toString()
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
 
@@ -151,18 +162,20 @@ class FieldCondition {
     }
 
     lessThanOrEqualTo(value: number): Promise<Array<any> | boolean> {
-        var cacheRep = {
-            collection: this.action.collection,
-            action: "Get",
-            values: "",
-            field: this.field,
-            op: "lessThanOrEqualTo",
-            value: value.toString()
-        };
-        for (var cache of this.action.db.cache) {
-            if (cache == cacheRep) {
-                this.action.databaseType = DatabaseType.Local;
-                break;
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "lessThanOrEqualTo",
+                value: value.toString()
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
             }
         }
 
@@ -178,6 +191,22 @@ class FieldCondition {
     }
 
     isTrue(): Promise<Array<any> | boolean> {
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "isTrue",
+                value: "true"
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
+            }
+        }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
             this.datastoreRequest("true", "EQUAL");
@@ -191,6 +220,22 @@ class FieldCondition {
     }
 
     isFalse(): Promise<Array<any> | boolean> {
+        if (this.action instanceof Get) {
+            var cacheRep = {
+                collection: this.action.collection,
+                action: "Get",
+                values: "",
+                field: this.field,
+                op: "isFalse",
+                value: "false"
+            };
+            for (var cache of this.action.db.cache) {
+                if (cache == cacheRep) {
+                    this.action.databaseType = DatabaseType.Local;
+                    break;
+                }
+            }
+        }
 
         if (this.action.databaseType == DatabaseType.Datastore) {
             this.datastoreRequest("false", "EQUAL");
@@ -222,12 +267,15 @@ class FieldCondition {
 
     datastoreRequest(value: any, comparator: string): Promise<Array<any> | boolean> {
         if (this.action instanceof Get) {
+            // query based on filter
             return new Promise<Array<any>>((resolve, reject) => {
+                // request setup
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
-                xhr.setRequestHeader('Content-Type', 'application/json')
+                xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
 
+                // datastore filter body
                 const body = JSON.stringify({
                     query: {
                         filter: {
@@ -246,18 +294,22 @@ class FieldCondition {
 
                 var field = this.field;
                 var action = this.action;
+                // wait for query
                 xhr.onreadystatechange = function()  {
+                    // if query ok
                     if (xhr.readyState == 4) {
+                        // parse the result
                         var res = JSON.parse(xhr.responseText);
-                        console.log(res);
                         var d = res.data;
 
+                        // add entities to local storage
                         var entities = [];
                         for (var entRes of d.batch.entityResults) {
                             entities.push(entRes.entity);
                         }
                         action.db.makeCollection(action.collection);
                         var coll = action.db.collection(action.collection);
+                        // update cache reference
                         coll.addLocal(entities)
                         .then(res => {
                             action.db.cache.push({
@@ -280,6 +332,7 @@ class FieldCondition {
         }
         else if (this.action instanceof Set) {
             var set: Set = this.action;
+            // query based on filters similar to Get
             return new Promise<boolean>((resolve, reject) => {
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", "https://datastore.googleapis.com/v1/projects/" + this.action.projectID + ":runQuery", true);
@@ -318,6 +371,7 @@ class FieldCondition {
                                 });
                             }
                             
+                            // second request to mutate entities
                             var xhr2 = new XMLHttpRequest();
                             xhr2.open("POST", "https://datastore.googleapis.com/v1/projects/" + action.projectID + ":commit", true);
                             xhr2.setRequestHeader('Content-Type', 'application/json')
@@ -330,7 +384,8 @@ class FieldCondition {
                             xhr.onreadystatechange = function()  {
                                 if (xhr.readyState == 4) {
                                     var res2 = JSON.parse(xhr.responseText);
-        
+                                    
+                                    // clear cache
                                     res2.on('data', d2 => {
                                         action.db.cache = [];
                                         action.db.deleteCollection(action.collection);
@@ -386,6 +441,7 @@ class FieldCondition {
                                 });
                             }
                             
+                            // perform delete mutation
                             var xhr2 = new XMLHttpRequest();
                             xhr2.open("POST", "https://datastore.googleapis.com/v1/projects/" + action.projectID + ":commit", true);
                             xhr2.setRequestHeader('Content-Type', 'application/json')
@@ -399,6 +455,7 @@ class FieldCondition {
                                 if (xhr.readyState == 4) {
                                     var res2 = JSON.parse(xhr.responseText);
         
+                                    // update cache
                                     res2.on('data', d2 => {
                                         action.db.cache = [];
                                         action.db.deleteCollection(action.collection);
@@ -421,6 +478,7 @@ class FieldCondition {
         }
     }
 
+    // similar structure to datastore requests
     firestoreRequest(value: any, comparator: string): Promise<Array<any> | boolean> {
         if (this.action instanceof Get) {
             return new Promise<Array<any>>((resolve, reject) => {
@@ -429,6 +487,7 @@ class FieldCondition {
                 xhr.setRequestHeader('Content-Type', 'application/json')
                 xhr.setRequestHeader('Authorization', 'Bearer ' + this.action.db.token);
 
+                // firestore filter body
                 const body = JSON.stringify({
                     structuredQuery: {
                         select: {
@@ -455,6 +514,7 @@ class FieldCondition {
                         var res = JSON.parse(xhr.responseText);
                         var d = res.data;
 
+                        // update local storage and cache with retrieved documents
                         var documents = [d.document];
                         action.db.makeCollection(action.collection);
                         var coll = action.db.collection(action.collection);
@@ -622,20 +682,25 @@ class FieldCondition {
 
     wasmQuery(value: any, moduleFunction: Function): Promise<Array<any> | boolean> {
         return new Promise((resolve, reject) => {
+            // get collection from local storage
             chrome.storage.sync.get(this.action.collection, (res) => {
                 if (res[this.action.collection] != undefined) {
-                    
+                    // filter using wasm module
                     this.action.db.store = res[this.action.collection];
 
+                    // references to filter key and value
                     var keyPtr = this.action.db.__pin(this.action.db.__newString(this.field));
                     var valPtr = this.action.db.__pin(this.action.db.__newString(JSON.stringify(value)));
 
+                    // perform wasm function and get reference to return array
                     var aPtr = moduleFunction(res[this.action.collection].length, keyPtr, valPtr);
                     var a = this.action.db.__getArray(aPtr);
 
+                    // free the references
                     this.action.db.__unpin(keyPtr);
                     this.action.db.__unpin(valPtr);
 
+                    // return the objects if a Get
                     if (this.action instanceof Get) {
                         var out = [];
                         for (let i of a) {
@@ -646,6 +711,7 @@ class FieldCondition {
                             out.push(obj);
                         }
                         resolve(out);
+                    // else mutate
                     } else if (this.action instanceof Set) {
                         for (let i of a) {
                             var object = res[this.action.collection][i];
@@ -688,6 +754,7 @@ class FieldCondition {
     }
 }
 
+// evaluates a local query for the length of an array field
 class LengthFieldCondition extends FieldCondition {
     field: string;
     action: Get | Set;
@@ -721,6 +788,7 @@ class LengthFieldCondition extends FieldCondition {
     }
 }
 
+// class to handle queries on a collection
 class Get {
     collection: string;
     db: ChromeDB;
@@ -740,13 +808,16 @@ class Get {
         }
     }
 
+    // filter based on a javascript function
     where(condition: (object: any) => boolean): Promise<Array<any>>;
+    // or on a field
     where(field: string): FieldCondition;
     where(conditionOrField: any): any {
+        // for a field generate a new field condition
         if (typeof conditionOrField === "string") {
             return new FieldCondition(conditionOrField, this);
         }
-
+        // else perform the query using the javascript function
         else {
 
             if (this.databaseType != DatabaseType.Local) {
@@ -776,6 +847,7 @@ class Get {
         }
     }
 
+    // return full collection
     all(): Promise<Array<any>> {
         return new Promise<Array<any>>((resolve, reject) => {
             chrome.storage.sync.get(this.collection, (res) => {
@@ -798,6 +870,7 @@ class Get {
     }
 }
 
+// similar to Get, for mutation
 class Set {
     values: Map<string, any>;
     collection: string;
@@ -862,7 +935,6 @@ class Set {
         }
     }
 
-    //TODO: WASM
     all(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.get(this.collection, (res) => {
@@ -886,6 +958,7 @@ class Set {
     }
 }
 
+// similar to Get, for deletion
 class Delete {
     collection: string;
     db: ChromeDB;
@@ -958,6 +1031,7 @@ class Delete {
     }
 }
 
+// class through which queries or mutations can be made
 class Collection {
     name: string;
     db: ChromeDB;
@@ -1005,6 +1079,7 @@ class Collection {
         }
     }
 
+    // force insertion to be local only
     addLocal(object: any): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.get(this.name, (res) => {
@@ -1026,6 +1101,7 @@ class Collection {
         });
     }
 
+    // add multiple objects
     addAll(objects: Array<any>): Promise<boolean> {
         if (this.db.databaseType == DatabaseType.Local) {
             return new Promise<boolean>((resolve, reject) => {
@@ -1061,6 +1137,7 @@ class Collection {
             xhr.setRequestHeader('Authorization', 'Bearer ' + this.db.token);
 
             var inserts = [];
+            // insertion mutation body
             for (var object in objects) {
                 var key = object["key"];
                 delete object["key"];
@@ -1123,6 +1200,7 @@ export class ChromeDB {
         db.initWASM();
 
         return new Promise<ChromeDB>((resolve, reject) => {
+            // get list of available collections for the specified database, else initialize as empty database
             chrome.storage.sync.get('chromedb_config', (res) => {
                 db.config = new Config();
                 if (res.chromedb_config != undefined) {
@@ -1153,11 +1231,10 @@ export class ChromeDB {
     }
 
     initWASM() {
-        
+        // specify wasm imports
         const imports = {
             query: {
                 log: (msgPtr) => {
-                    // at the time of call, wasmExample will be initialized
                     console.log('WASM is talking', this.__getString(msgPtr));
                 },
                 access: (i, keyPtr) => {
@@ -1175,12 +1252,14 @@ export class ChromeDB {
                     this.__unpin(this.ptrStore);
                 }
             },
+            // memory specs
             env: {
               memory: new WebAssembly.Memory({ initial: 1024 }),
               table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' })
             }
         };
         
+        // fetch wasm file and obtain all available module functions
         loader.instantiate(fetch("query.wasm"), imports)
             .then((module) => {
                 this.wasmIs = module.exports.is;
@@ -1200,6 +1279,7 @@ export class ChromeDB {
             });
     }
 
+    // return a collection if it exists
     collection(name: string): Collection {
         if (this.config.collections[this.database].includes(name)) {
             return new Collection(this, name);
@@ -1207,6 +1287,7 @@ export class ChromeDB {
         throw Error(`Collection ${name} doesn't belong to database ${this.database}`);
     }
 
+    // add a new collection to the config
     makeCollection(name: string): Promise<boolean> {
         if (this.config.collections[this.database].includes(name)) {
             return new Promise<boolean>((resolve, reject) => {
@@ -1222,6 +1303,7 @@ export class ChromeDB {
         });
     }
 
+    // delete a collection from the config
     deleteCollection(name: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             chrome.storage.sync.remove(name, () => {

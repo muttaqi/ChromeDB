@@ -1231,7 +1231,7 @@ export class ChromeDB {
     }
 
     initWASM() {
-        // specify wasm imports
+        // specify functions that wasm will import and use for queries
         const imports = {
             query: {
                 log: (msgPtr) => {
